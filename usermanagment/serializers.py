@@ -36,7 +36,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Appointment
-        fields = ['id', 'appointment_title', 'start_date', 'start_time', 'end_time', 'assigned_user', 'created_at', 'user']
-
+        # fields = ['id', 'appointment_title', 'start_date', 'start_time', 'end_time', 'assigned_user', 'created_at', 'user']
+        fields='__all__'
     
 

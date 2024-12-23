@@ -141,7 +141,6 @@ class AppointmentCreateView(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-from django.db.models import Count,ExpressionWrapper,F,DurationField,Max,Min,Sum
 
 class Getappointments(APIView):
     permission_classes = [IsAuthenticated]
@@ -159,18 +158,98 @@ class Getappointments(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_200_OK)
-class Getappointmentdata(APIView):
-    def post(self,request):
-        try:
-            print("apiwebhook")
-            # user_id = request.query_params.get('id')
-            # user=CustomUser.objects.get(id=user_id) 
-            # appointments = user.appointments.all()
-            # appointment_serializer = AppointmentSerializer(appointments,many=True)
-            # response_data =  appointment_serializer.data
-            print(request.data,"jjjjjjjjjjjjjjjjjjjjjjj")
-            return Response( status=status.HTTP_200_OK)
+# class Getappointmentdata(APIView):
+#     def post(self,request):
+#         try:
+#             print("apiwebhook")
+#             data=request.data
+#             user, created = CustomUser.objects.get_or_create(email=data.get('email'),username=data.get('username'))
+            
+#             assigned_user = None
+                
+#             assigned_user = CustomUser.objects.get_or_create(username=data["assigned_user"])
+              
+#             # Create Appointment
+#             appointment = Appointment.objects.create(
+#                 user=user,
+#                 appointment_location=data["appointment_location"],
+#                 start_date=data["start_date"],
+#                 start_time=data["start_time"],
+#                 end_time=data.get("end_time"),
+#                 assigned_user=assigned_user,
+#                 tatto_idea=data.get('tatto_idea'),
+#                 # reference_image=data.get('reference_Images')
+#             )
+#             serializer = AppointmentSerializer(appointment)
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+#         except Exception as e:
+#             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+#             print(request.data,"jjjjjjjjjjjjjjjjjjjjjjj")
+#             return Response( status=status.HTTP_200_OK)
             
 
+#         except Exception as e:
+#             return Response(str(e), status=status.HTTP_200_OK)
+
+
+class Getappointmentdata(APIView):
+    def post(self, request):
+        try:
+            print("API Webhook called")
+            data = request.data
+
+            # Get or create the user
+            user, created = CustomUser.objects.get_or_create(
+             email=data.get('email'),
+                defaults={'username': data.get('username')}
+                )
+
+            if not created:
+                print(f"User with email {data.get('email')} already exists.")
+            # Get or create the assigned user
+            assigned_user, _ = CustomUser.objects.get_or_create(
+                username=data.get("assigned_user")
+            )
+            overlapping_appointments = Appointment.objects.filter(
+                user=user,
+                start_date=data["start_date"],
+                start_time__lt=data["end_time"],  # Start time is before the new appointment's end time
+                end_time__gt=data["start_time"]   # End time is after the new appointment's start time
+            )
+
+            if overlapping_appointments.exists():
+                return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            
+            # Create the appointment
+            appointment = Appointment.objects.create(
+                user=user,
+                appointment_location=data["appointment_location"],
+                start_date=data["start_date"],
+                start_time=data["start_time"],
+                end_time=data.get("end_time"),
+                assigned_user=assigned_user,
+                tatto_idea=data.get('tatto_idea'),
+                # Uncomment and handle the reference image field if needed
+                reference_image=data.get('reference_image')
+            )
+
+            # Serialize the created appointment
+            serializer = AppointmentSerializer(appointment)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except KeyError as e:
+            # Handle missing required keys
+            return Response(
+                {"error": f"Missing required field: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         except Exception as e:
-            return Response(str(e), status=status.HTTP_200_OK)
+            # Log exception and return error response
+            print(f"Error occurred: {str(e)}")
+            return Response(
+                {"error": "An error occurred while creating the appointment."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

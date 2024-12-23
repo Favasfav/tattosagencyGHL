@@ -10,7 +10,7 @@ from django.contrib.auth.models import AbstractUser
 class CustomUser(AbstractUser):
    
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=20, unique=False)
+    username = models.CharField(max_length=50, unique=False)
     USERNAME_FIELD = 'email'
     
     REQUIRED_FIELDS = ['username']
@@ -32,7 +32,7 @@ class CustomUser(AbstractUser):
 
 class Appointment(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='appointments')
-    appointment_title = models.CharField(max_length=60)
+    appointment_title = models.CharField(max_length=60,null=True)
     start_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
