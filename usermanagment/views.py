@@ -219,7 +219,7 @@ class Getappointmentdata(APIView):
             )
 
             if overlapping_appointments.exists():
-                return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "Appointment time overlaps with an existing appointment ."}, status=status.HTTP_400_BAD_REQUEST)
             
             
             # Create the appointment
