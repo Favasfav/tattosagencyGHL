@@ -250,6 +250,6 @@ class Getappointmentdata(APIView):
             # Log exception and return error response
             print(f"Error occurred: {str(e)}")
             return Response(
-                {"error": "An error occurred while creating the appointment."},
+                {"error": str(e),"An error occurred while creating the appointment."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
