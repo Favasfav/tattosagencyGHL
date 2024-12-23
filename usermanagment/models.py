@@ -44,6 +44,11 @@ class Appointment(models.Model):
         related_name='assigned_appointments'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    appointment_location = models.CharField(max_length=100,null=True)  
+    tatto_idea = models.CharField(max_length=255,null=True)  
+    reference_image = models.ImageField(null=True, blank=True, upload_to='reference_images/')
+
+    
 
     def __str__(self):
         return f"Appointment for {self.user.email} on {self.start_date}"

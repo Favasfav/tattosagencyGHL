@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,7 +27,9 @@ SECRET_KEY = 'django-insecure-g_mp5g_!&g@)y4hlr38wtc1j6j&^oqdz=c^g4**l6szgkocxi2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['tattosagencyghl.onrender.com']
+# ALLOWED_HOSTS = ['tattosagencyghl.onrender.com']
+ALLOWED_HOSTS = ['*']
+
 
 
 # Application definition
@@ -94,6 +97,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'userappointment.wsgi.application'
 CSRF_TRUSTED_ORIGINS=['https://tattosagencyghl.onrender.com']
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -160,3 +166,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usermanagment.CustomUser'
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

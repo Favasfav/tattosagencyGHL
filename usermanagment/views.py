@@ -159,3 +159,18 @@ class Getappointments(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_200_OK)
+class Getappointmentdata(APIView):
+    def post(self,request):
+        try:
+            print("apiwebhook")
+            # user_id = request.query_params.get('id')
+            # user=CustomUser.objects.get(id=user_id) 
+            # appointments = user.appointments.all()
+            # appointment_serializer = AppointmentSerializer(appointments,many=True)
+            # response_data =  appointment_serializer.data
+            print(request.data,"jjjjjjjjjjjjjjjjjjjjjjj")
+            return Response( status=status.HTTP_200_OK)
+            
+
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_200_OK)
