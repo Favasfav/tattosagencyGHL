@@ -73,7 +73,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'userappointment.urls'
 
@@ -99,15 +98,24 @@ WSGI_APPLICATION = 'userappointment.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": "tattodb1",
+#         "USER": "postgres",
+#         "PASSWORD": "Favas@9142",
+#         "HOST": "127.0.0.1",
+#         "PORT": "5432",
+#     }
+# }  
+
+# Replace the SQLite DATABASES configuration with PostgreSQL:
+import dj_database_url
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "tattodb1",
-        "USER": "postgres",
-        "PASSWORD": "Favas@9142",
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
-    }
+    'default': dj_database_url.parse(
+        'postgresql://tattoos_db_user:1imRDB4WiAxB9rTzHABeg0Vg5RvKS5O3@dpg-ctkog05ds78s73c1etm0-a.oregon-postgres.render.com/tattoos_db'
+       
+    )
 }
 
 
