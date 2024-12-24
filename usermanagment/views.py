@@ -72,36 +72,56 @@ class UserLoginView(APIView):
             )
 
 
+
+
 class UserSignupAPI(APIView):
     def post(self, request):
-        print("request.data", request.data)
         try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+
+            existing_user = CustomUser.objects.filter(email=email).first()
+
+            if existing_user:
+                if not existing_user.password:
+                    existing_user.set_password(password)
+                    existing_user.save()
+                    return Response(
+                        {"message": "Password set successfully for existing user."},
+                        status=status.HTTP_200_OK
+                    )
+                return Response(
+                    {"message": "User already exists."},
+                    status=status.HTTP_200_OK
+                )
+
             serializer = SignupSerializer(data=request.data)
             if serializer.is_valid():
                 user_data = serializer.validated_data
+                username = user_data.get('username')
 
-                print(user_data, "ser_data")
-                user = CustomUser(
-                    email=user_data["email"],
-                    username=user_data["username"],
-                )
-
-                user.set_password(user_data["password"])
+                user = CustomUser(email=email, username=username)
+                user.set_password(password)
                 user.save()
 
                 return Response(
                     {"message": "Account created successfully."},
-                    status=status.HTTP_201_CREATED,
+                    status=status.HTTP_201_CREATED
                 )
-            print(serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"message": "User does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except Exception as e:
             return Response(
-                {
-                    "message": e,
-                },
+                {"message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
 
 
 class AppointmentCreateView(APIView):
@@ -234,26 +254,7 @@ class Getappointmentdata(APIView):
 
             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
             
-            print(created,"kkk")
-            # assigned_user = None
-                
-            # assigned_user,created = CustomUser.objects.get_or_create(username=assigned_user,defaults={'username':assigned_user})
-            # print(created,"kyyyykk")
-            
-            # Get the user by email, do not create a new one
-            # try:
-            #     user = CustomUser.objects.get(email=email)
-            #     print(f"User with email {email} found.")
-            # except ObjectDoesNotExist:
-            #     return Response(
-            #         {"error": f"User with email {email} does not exist."},
-            #         status=status.HTTP_404_NOT_FOUND
-            #     )
-            
-            # Get or create the assigned user
-            # assigned_user_obj, _ = CustomUser.objects.get_or_create(username=assigned_user)
-
-            # Check for overlapping appointments
+           
             overlapping_appointments = Appointment.objects.filter(
             user=user,
             start_date=start_date,).filter(
@@ -276,19 +277,16 @@ class Getappointmentdata(APIView):
                 reference_image=reference_images
             )
 
-            # Serialize the created appointment
             serializer = AppointmentSerializer(appointment)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except KeyError as e:
-            # Handle missing required keys
             return Response(
                 {"error": f"Missing required field: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         except Exception as e:
-            # Log exception and return error response
             print(f"Error occurred: {str(e)}")
             return Response(
                 {"error": str(e)},
