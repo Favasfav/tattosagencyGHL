@@ -104,43 +104,117 @@ class UserSignupAPI(APIView):
             )
 
 
-class AppointmentCreateView(APIView):
+# class AppointmentCreateView(APIView):
 
+#     def post(self, request):
+#         try:
+#             print(request.data)
+#             data = request.data
+
+#             profile = CustomUser.objects.get(email=data['customData']["email"])
+
+#             if not isinstance(profile, CustomUser):
+#                 return Response(
+#                     {"error": "User is not a valid CustomUser."},
+#                     status=status.HTTP_400_BAD_REQUEST,
+#                 )
+#             assigned_user = None
+#             if "assigned_user" in data:
+#                 try:
+#                     assigned_user = CustomUser.objects.get(email=data['customData']["assigned_user"])
+#                 except CustomUser.DoesNotExist:
+#                     return Response(
+#                         {"error": "Assigned user does not exist"},
+#                         status=status.HTTP_400_BAD_REQUEST,
+#                     )
+
+#             # Create Appointment
+#             appointment = Appointment.objects.create(
+#                 user=profile,
+                
+#                 appointment_title=data['customData']["appointment_title"],
+#                 start_date=data['customData']["start_date"],
+#                 start_time=data['customData']["start_time"],
+#                 end_time=data.['customData']["end_time"],
+#                 assigned_user=assigned_user,
+#             )
+#             serializer = AppointmentSerializer(appointment)
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+#         except Exception as e:
+#             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import CustomUser, Appointment
+from .serializers import AppointmentSerializer
+
+class AppointmentCreateView(APIView):
     def post(self, request):
         try:
+            print(request.data)
             data = request.data
+            custom_data = data.get('customData', {})
 
-            profile = CustomUser.objects.get(email=data["email"])
-
-            if not isinstance(profile, CustomUser):
-                return Response(
-                    {"error": "User is not a valid CustomUser."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            assigned_user = None
-            if "assigned_user" in data:
-                try:
-                    assigned_user = CustomUser.objects.get(email=data["assigned_user"])
-                except CustomUser.DoesNotExist:
+            # Validate required fields
+            required_fields = ["email", "appointment_title", "start_date", "start_time", "end_time"]
+            for field in required_fields:
+                if field not in custom_data:
                     return Response(
-                        {"error": "Assigned user does not exist"},
+                        {"error": f"'{field}' is a required field."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            # Create Appointment
+            # Get user profile
+            try:
+                profile = CustomUser.objects.get(email=custom_data["email"])
+            except CustomUser.DoesNotExist:
+                return Response(
+                    {"error": "User with the given email does not exist."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Get assigned user, if provided
+            assigned_user = None
+            assigned_user_email = custom_data.get("assigned_user")
+            if assigned_user_email:
+                try:
+                    assigned_user = CustomUser.objects.get(email=assigned_user_email)
+                except CustomUser.DoesNotExist:
+                    return Response(
+                        {"error": "Assigned user does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            # Create appointment
             appointment = Appointment.objects.create(
                 user=profile,
-                appointment_title=data["appointment_title"],
-                start_date=data["start_date"],
-                start_time=data["start_time"],
-                end_time=data.get("end_time"),
+                appointment_title=custom_data["appointment_title"],
+                start_date=custom_data["start_date"],
+                start_time=custom_data["start_time"],
+                end_time=custom_data["end_time"],
                 assigned_user=assigned_user,
             )
-            serializer = AppointmentSerializer(appointment)
+
+            # Serialize and return response
+            serializer = AppointmentSerializer(appointment, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        except KeyError as e:
+            return Response(
+                {"error": f"Missing required key: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as e:
-            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+
 
 class Getappointments(APIView):
     permission_classes = [IsAuthenticated]
