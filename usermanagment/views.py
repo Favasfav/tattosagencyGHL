@@ -198,6 +198,7 @@ class Getappointments(APIView):
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from datetime import datetime
 
 class Getappointmentdata(APIView):
     def post(self, request):
@@ -228,7 +229,8 @@ class Getappointmentdata(APIView):
             print(f"tatto_idea: {tattoo_idea}")
             print(f"reference_images: {reference_images}")
             print(f"assigned_user: {assigned_user}")
-
+            start_time = datetime.strptime(start_time, '%I:%M %p').time()
+            end_time = datetime.strptime(end_time, '%I:%M %p').time()
 
             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
             
