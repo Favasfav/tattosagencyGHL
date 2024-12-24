@@ -289,6 +289,6 @@ class Getappointmentdata(APIView):
             # Log exception and return error response
             print(f"Error occurred: {str(e)}")
             return Response(
-                {"error": "An unexpected error occurred, please try again."},
+                {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
