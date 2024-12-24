@@ -172,4 +172,4 @@ import os
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Where files are stored on the filesystem
 MEDIA_URL = '/media/'  # URL prefix for accessing media files
 
-
+CORS_ALLOW_ALL_ORIGINS = True
