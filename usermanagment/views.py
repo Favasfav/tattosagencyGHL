@@ -104,117 +104,43 @@ class UserSignupAPI(APIView):
             )
 
 
-# class AppointmentCreateView(APIView):
-
-#     def post(self, request):
-#         try:
-#             print(request.data)
-#             data = request.data
-
-#             profile = CustomUser.objects.get(email=data['customData']["email"])
-
-#             if not isinstance(profile, CustomUser):
-#                 return Response(
-#                     {"error": "User is not a valid CustomUser."},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-#             assigned_user = None
-#             if "assigned_user" in data:
-#                 try:
-#                     assigned_user = CustomUser.objects.get(email=data['customData']["assigned_user"])
-#                 except CustomUser.DoesNotExist:
-#                     return Response(
-#                         {"error": "Assigned user does not exist"},
-#                         status=status.HTTP_400_BAD_REQUEST,
-#                     )
-
-#             # Create Appointment
-#             appointment = Appointment.objects.create(
-#                 user=profile,
-                
-#                 appointment_title=data['customData']["appointment_title"],
-#                 start_date=data['customData']["start_date"],
-#                 start_time=data['customData']["start_time"],
-#                 end_time=data.['customData']["end_time"],
-#                 assigned_user=assigned_user,
-#             )
-#             serializer = AppointmentSerializer(appointment)
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-#         except Exception as e:
-#             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import CustomUser, Appointment
-from .serializers import AppointmentSerializer
-
 class AppointmentCreateView(APIView):
+
     def post(self, request):
         try:
-            print(request.data)
             data = request.data
-            custom_data = data.get('customData', {})
 
-            # Validate required fields
-            required_fields = ["email", "appointment_title", "start_date", "start_time", "end_time"]
-            for field in required_fields:
-                if field not in custom_data:
-                    return Response(
-                        {"error": f"'{field}' is a required field."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+            profile = CustomUser.objects.get(email=data["email"])
 
-            # Get user profile
-            try:
-                profile = CustomUser.objects.get(email=custom_data["email"])
-            except CustomUser.DoesNotExist:
+            if not isinstance(profile, CustomUser):
                 return Response(
-                    {"error": "User with the given email does not exist."},
+                    {"error": "User is not a valid CustomUser."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-            # Get assigned user, if provided
             assigned_user = None
-            assigned_user_email = custom_data.get("assigned_user")
-            if assigned_user_email:
+            if "assigned_user" in data:
                 try:
-                    assigned_user = CustomUser.objects.get(email=assigned_user_email)
+                    assigned_user = CustomUser.objects.get(email=data["assigned_user"])
                 except CustomUser.DoesNotExist:
                     return Response(
-                        {"error": "Assigned user does not exist."},
+                        {"error": "Assigned user does not exist"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            # Create appointment
+            # Create Appointment
             appointment = Appointment.objects.create(
                 user=profile,
-                appointment_title=custom_data["appointment_title"],
-                start_date=custom_data["start_date"],
-                start_time=custom_data["start_time"],
-                end_time=custom_data["end_time"],
+                appointment_title=data["appointment_title"],
+                start_date=data["start_date"],
+                start_time=data["start_time"],
+                end_time=data.get("end_time"),
                 assigned_user=assigned_user,
             )
-
-            # Serialize and return response
-            serializer = AppointmentSerializer(appointment, context={'request': request})
+            serializer = AppointmentSerializer(appointment)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        except KeyError as e:
-            return Response(
-                {"error": f"Missing required key: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-
-
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class Getappointments(APIView):
     permission_classes = [IsAuthenticated]
@@ -267,46 +193,85 @@ class Getappointments(APIView):
 #             return Response(str(e), status=status.HTTP_200_OK)
 
 
+# 
+
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
+
 class Getappointmentdata(APIView):
     def post(self, request):
         try:
-            print("API Webhook called",request.data)
+            print("API Webhook called", request.data)
+            
+            # Extract the 'customData' from the request data
             data = request.data
+            custom_data = data.get('customData', {})
+            
+            # Now extract each item from the customData
+            username = custom_data.get('username', None)  # "TEST Web1"
+            email = custom_data.get('email', None)  # "web@test1.com"
+            appointment_location = custom_data.get('appointment_location', None)  # "Colorado Springs, Co. (Weber St.)"
+            start_time = custom_data.get('start_time', None)  # "12:00:00"
+            end_time = custom_data.get('end_time', None)  # "01:00:00"
+            start_date = custom_data.get('start_date', None)  # "2024-12-27"
+            tattoo_idea = custom_data.get('tatto_idea', None)  # "nil"
+            reference_images = custom_data.get('reference_Images', None)  # "https://services.leadconnectorhq.com/documents/download/4qTpfUo6h0RnPCUimxDJ"
+            assigned_user = custom_data.get('assigned_user', None)  # "EAST - Camille Shotliff"
 
-            # Get or create the user
-            user, created = CustomUser.objects.get_or_create(
-             email=data.get('email'),
-                defaults={'username': data.get('username')}
-                )
+            print(f"username: {username}")
+            print(f"email: {email}")
+            print(f"appointment_location: {appointment_location}")
+            print(f"start_time: {start_time}")
+            print(f"end_time: {end_time}")
+            print(f"start_date: {start_date}")
+            print(f"tatto_idea: {tattoo_idea}")
+            print(f"reference_images: {reference_images}")
+            print(f"assigned_user: {assigned_user}")
 
-            if not created:
-                print(f"User with email {data.get('email')} already exists.")
+
+            user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
+            
+            print(created,"kkk")
+            # assigned_user = None
+                
+            # assigned_user,created = CustomUser.objects.get_or_create(username=assigned_user,defaults={'username':assigned_user})
+            # print(created,"kyyyykk")
+            
+            # Get the user by email, do not create a new one
+            # try:
+            #     user = CustomUser.objects.get(email=email)
+            #     print(f"User with email {email} found.")
+            # except ObjectDoesNotExist:
+            #     return Response(
+            #         {"error": f"User with email {email} does not exist."},
+            #         status=status.HTTP_404_NOT_FOUND
+            #     )
+            
             # Get or create the assigned user
-            assigned_user, _ = CustomUser.objects.get_or_create(
-                username=data.get("assigned_user")
-            )
+            # assigned_user_obj, _ = CustomUser.objects.get_or_create(username=assigned_user)
+
+            # Check for overlapping appointments
             overlapping_appointments = Appointment.objects.filter(
-                user=user,
-                start_date=data["start_date"],
-                start_time__lt=data["end_time"],  
-                end_time__gt=data["start_time"]   
+            user=user,
+            start_date=start_date,).filter(
+            Q(start_time__lt=end_time, end_time__gt=start_time) | 
+            Q(start_time__lt=start_time, end_time__gt=end_time)
             )
 
             if overlapping_appointments.exists():
-                return Response({"message": "Appointment time overlaps with an existing appointment ."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
+
             
-            
-            # Create the appointment
             appointment = Appointment.objects.create(
                 user=user,
-                appointment_location=data["appointment_location"],
-                start_date=data["start_date"],
-                start_time=data["start_time"],
-                end_time=data.get("end_time"),
+                appointment_location=appointment_location,
+                start_date=start_date,
+                start_time=start_time,
+                end_time=end_time,
                 assigned_user=assigned_user,
-                tatto_idea=data.get('tatto_idea'),
-                # Uncomment and handle the reference image field if needed
-                reference_image=data.get('reference_Images')
+                tatto_idea=tattoo_idea,
+                reference_image=reference_images
             )
 
             # Serialize the created appointment
@@ -324,6 +289,6 @@ class Getappointmentdata(APIView):
             # Log exception and return error response
             print(f"Error occurred: {str(e)}")
             return Response(
-                {"error": str(e)},
+                {"error": "An unexpected error occurred, please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
