@@ -229,16 +229,15 @@ class Getappointmentdata(APIView):
             data = request.data
             custom_data = data.get('customData', {})
             
-            # Now extract each item from the customData
-            username = custom_data.get('username', None)  # "TEST Web1"
-            email = custom_data.get('email', None)  # "web@test1.com"
-            appointment_location = custom_data.get('appointment_location', None)  # "Colorado Springs, Co. (Weber St.)"
-            start_time = custom_data.get('start_time', None)  # "12:00:00"
-            end_time = custom_data.get('end_time', None)  # "01:00:00"
-            start_date = custom_data.get('start_date', None)  # "2024-12-27"
-            tattoo_idea = custom_data.get('tatto_idea', None)  # "nil"
-            reference_images = custom_data.get('reference_Images', None)  # "https://services.leadconnectorhq.com/documents/download/4qTpfUo6h0RnPCUimxDJ"
-            assigned_user = custom_data.get('assigned_user', None)  # "EAST - Camille Shotliff"
+            username = custom_data.get('username', None) 
+            email = custom_data.get('email', None)  
+            appointment_location = custom_data.get('appointment_location', None)  
+            start_time = custom_data.get('start_time', None)  
+            end_time = custom_data.get('end_time', None)  
+            start_date = custom_data.get('start_date', None) 
+            tattoo_idea = custom_data.get('tatto_idea', None)  
+            reference_images = custom_data.get('reference_Images', None)  
+            assigned_user = custom_data.get('assigned_user', None)  
 
             print(f"username: {username}")
             print(f"email: {email}")
@@ -258,8 +257,8 @@ class Getappointmentdata(APIView):
             overlapping_appointments = Appointment.objects.filter(
             user=user,
             start_date=start_date,).filter(
-            Q(start_time__lt=end_time, end_time__gt=start_time) | 
-            Q(start_time__lt=start_time, end_time__gt=end_time)
+            Q(start_time__lt=end_time, end_time__gt=start_time)  
+            
             )
 
             if overlapping_appointments.exists():
