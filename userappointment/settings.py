@@ -168,5 +168,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usermanagment.CustomUser'
 import os
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Base directory for media files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Where files are stored on the filesystem
+MEDIA_URL = '/media/'  # URL prefix for accessing media files
+
+

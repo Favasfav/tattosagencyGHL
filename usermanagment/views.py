@@ -196,7 +196,7 @@ class Getappointments(APIView):
 class Getappointmentdata(APIView):
     def post(self, request):
         try:
-            print("API Webhook called")
+            print("API Webhook called",request.data)
             data = request.data
 
             # Get or create the user
@@ -214,8 +214,8 @@ class Getappointmentdata(APIView):
             overlapping_appointments = Appointment.objects.filter(
                 user=user,
                 start_date=data["start_date"],
-                start_time__lt=data["end_time"],  # Start time is before the new appointment's end time
-                end_time__gt=data["start_time"]   # End time is after the new appointment's start time
+                start_time__lt=data["end_time"],  
+                end_time__gt=data["start_time"]   
             )
 
             if overlapping_appointments.exists():
@@ -232,7 +232,7 @@ class Getappointmentdata(APIView):
                 assigned_user=assigned_user,
                 tatto_idea=data.get('tatto_idea'),
                 # Uncomment and handle the reference image field if needed
-                reference_image=data.get('reference_image')
+                reference_image=data.get('reference_Images')
             )
 
             # Serialize the created appointment
@@ -250,6 +250,6 @@ class Getappointmentdata(APIView):
             # Log exception and return error response
             print(f"Error occurred: {str(e)}")
             return Response(
-                {"error": str(e),"An error occurred while creating the appointment."},
+                {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
