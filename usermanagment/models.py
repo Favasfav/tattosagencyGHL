@@ -11,6 +11,7 @@ class CustomUser(AbstractUser):
    
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=False)
+    appointmentbooked=models.BooleanField(default=False)
     USERNAME_FIELD = 'email'
     
     REQUIRED_FIELDS = ['username']

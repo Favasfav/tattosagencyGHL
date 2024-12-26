@@ -321,7 +321,7 @@ class Getappointmentdata(APIView):
 
             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
             
-           
+            
             overlapping_appointments = Appointment.objects.filter(
             user=user,
             start_date=start_date,).filter(
@@ -343,7 +343,8 @@ class Getappointmentdata(APIView):
                 tatto_idea=tattoo_idea,
                 reference_image=reference_images
             )
-
+            if appointment:
+                user.appointmentbooked=True
             serializer = AppointmentSerializer(appointment)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
