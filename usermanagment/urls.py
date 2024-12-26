@@ -16,6 +16,7 @@ urlpatterns = [
     path('create-appointment/',AppointmentCreateView.as_view(),name='createappointment'),
     path('get-appointments/',Getappointments.as_view(),name='getappointments'),
     path('get-formdata-appointment/',Getappointmentdata.as_view(),name='getappointmentdata'),
+    path('get-registred-users/',Getregistreduser.as_view(),name='getuserslist'),
     
 ]
 

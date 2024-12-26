@@ -7,7 +7,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
-from .serializers import SignupSerializer, LoginSerializer, AppointmentSerializer
+from .serializers import SignupSerializer, LoginSerializer, AppointmentSerializer,CustomUserSerializer
 from rest_framework import status
 from .models import CustomUser
 from django.contrib.auth import authenticate
@@ -360,3 +360,25 @@ class Getappointmentdata(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+
+
+class Getregistreduser(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # user_id = request.query_params.get('id')
+            # user=CustomUser.objects.get(id=user_id) 
+            # appointments = Appointment.appointments.all()
+            user_ids = Appointment.objects.values('user_id').distinct()
+            users = CustomUser.objects.filter(id__in=user_ids)
+            user_serializer = CustomUserSerializer(users,many=True)
+            response_data =  user_serializer.data
+
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_200_OK)
