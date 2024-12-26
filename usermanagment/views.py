@@ -14,7 +14,9 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
-
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
+from datetime import datetime
 
 # Create your views here.
 
@@ -45,9 +47,9 @@ class UserLoginView(APIView):
                 data = {
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
-                    "username":user.username,
-                    "email":user.email,
-                    "id":user.id
+                    # "username":user.username,
+                    # "email":user.email,
+                    # "id":user.id
                 }
                 response_data = data
               
@@ -71,6 +73,73 @@ class UserLoginView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from rest_framework import status
+# from django.contrib.auth import authenticate
+# from rest_framework_simplejwt.tokens import RefreshToken
+# from .serializers import LoginSerializer
+
+# class UserLoginView(APIView):
+#     def post(self, request):
+#         try:
+#             data = request.data
+#             serializer = LoginSerializer(data=data)
+#             if serializer.is_valid():
+#                 email = serializer.data["email"]
+#                 password = serializer.data["password"]
+#                 print("email", email)
+#                 user = authenticate(email=email, password=password)
+
+#                 if user is None:
+#                     response = Response(
+#                         {
+#                             "status": 400,
+#                             "message": "Invalid credentials ",
+#                         },
+#                         status=status.HTTP_400_BAD_REQUEST,
+#                     )
+
+#                     response.delete_cookie('jwt')  
+#                     return response
+
+#                 refresh = RefreshToken.for_user(user)
+#                 refresh["email"] = user.email
+
+#                 response = Response({"success": "Logged in successfully"})
+
+#                 response.set_cookie(
+#                     key='jwt', 
+#                     value=str(refresh.access_token), 
+#                     httponly=True, 
+#                     secure=True,  
+#                     samesite='Lax',
+#                 )
+
+#                 return response 
+
+#             else:
+               
+#                 response.delete_cookie('jwt')  
+
+#                 return Response(
+#                     {
+#                         "status": status.HTTP_400_BAD_REQUEST,
+#                         "message": "Invalid data provided.",
+#                         "errors": serializer.errors,
+#                     }
+#                 )
+
+#         except Exception as e:
+#             print(e)
+#             return Response(
+#                 {
+#                     "status": 400,
+#                 },
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
 
 
 
@@ -217,9 +286,7 @@ class Getappointments(APIView):
 # 
 
 
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
-from datetime import datetime
+
 
 class Getappointmentdata(APIView):
     def post(self, request):
@@ -240,15 +307,15 @@ class Getappointmentdata(APIView):
             reference_images = custom_data.get('reference_Images', None)  
             assigned_user = custom_data.get('assigned_user', None)  
 
-            print(f"username: {username}")
-            print(f"email: {email}")
-            print(f"appointment_location: {appointment_location}")
-            print(f"start_time: {start_time}")
-            print(f"end_time: {end_time}")
-            print(f"start_date: {start_date}")
-            print(f"tatto_idea: {tattoo_idea}")
-            print(f"reference_images: {reference_images}")
-            print(f"assigned_user: {assigned_user}")
+            # print(f"username: {username}")
+            # print(f"email: {email}")
+            # print(f"appointment_location: {appointment_location}")
+            # print(f"start_time: {start_time}")
+            # print(f"end_time: {end_time}")
+            # print(f"start_date: {start_date}")
+            # print(f"tatto_idea: {tattoo_idea}")
+            # print(f"reference_images: {reference_images}")
+            # print(f"assigned_user: {assigned_user}")
             start_time = datetime.strptime(start_time, '%I:%M %p').time()
             end_time = datetime.strptime(end_time, '%I:%M %p').time()
 
