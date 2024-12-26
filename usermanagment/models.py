@@ -37,14 +37,14 @@ class Appointment(models.Model):
     start_date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
-    # assigned_user = models.ForeignKey(
-    #     CustomUser,
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     related_name='assigned_appointments'
-    # )
-    assigned_user=models.CharField(max_length=50,null=True)
+    assigned_user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_appointments'
+    )
+    # assigned_user=models.CharField(max_length=50,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     appointment_location = models.CharField(max_length=100,null=True)  
     tatto_idea = models.CharField(max_length=255,null=True)  

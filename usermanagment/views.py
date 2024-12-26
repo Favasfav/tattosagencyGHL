@@ -17,7 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from datetime import datetime
-
+from django.db import transaction
 # Create your views here.
 
 
@@ -289,6 +289,7 @@ class Getappointments(APIView):
 
 
 class Getappointmentdata(APIView):
+    @transaction.atomic
     def post(self, request):
         try:
             print("API Webhook called", request.data)
@@ -305,7 +306,7 @@ class Getappointmentdata(APIView):
             start_date = custom_data.get('start_date', None) 
             tattoo_idea = custom_data.get('tatto_idea', None)  
             reference_images = custom_data.get('reference_Images', None)  
-            assigned_user = custom_data.get('assigned_user', None)  
+            assigned_username = custom_data.get('assigned_user', None)  
 
             # print(f"username: {username}")
             # print(f"email: {email}")
@@ -332,7 +333,9 @@ class Getappointmentdata(APIView):
             if overlapping_appointments.exists():
                 return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
 
-            
+            assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
+            print('assigned user',assigned_user.__dict__)
+            # raise Exception 
             appointment = Appointment.objects.create(
                 user=user,
                 appointment_location=appointment_location,
@@ -378,6 +381,21 @@ class Getregistreduser(APIView):
             response_data =  user_serializer.data
 
             return Response(response_data, status=status.HTTP_200_OK)
+            
+
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_200_OK)
+
+
+class Removefromuserlist(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            id =request.data.get('id')
+            users = CustomUser.objects.get(id=id).delete()
+            
+            return Response({"message":"successfully removed"}, status=status.HTTP_200_OK)
             
 
         except Exception as e:
