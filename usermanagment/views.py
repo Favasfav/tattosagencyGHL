@@ -170,7 +170,7 @@ class UserSignupAPI(APIView):
                 user_data = serializer.validated_data
                 username = user_data.get('username')
 
-                user = CustomUser(email=email, username=username)
+                user = CustomUser(email=email, username=username,registreduser=True)
                 user.set_password(password)
                 user.save()
 
@@ -237,9 +237,9 @@ class Getappointments(APIView):
 
     def get(self, request):
         try:
-            user_id = request.query_params.get('id')
-            user=CustomUser.objects.get(id=user_id) 
-            appointments = user.appointments.all()
+            assigned_user_id = request.query_params.get('id')
+            user=CustomUser.objects.get(id=assigned_user_id) 
+            appointments = user.assigned_appointments.all()
             appointment_serializer = AppointmentSerializer(appointments,many=True)
             response_data =  appointment_serializer.data
 
@@ -323,6 +323,7 @@ class Getappointmentdata(APIView):
             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
             
             
+            
             overlapping_appointments = Appointment.objects.filter(
             user=user,
             start_date=start_date,).filter(
@@ -333,7 +334,14 @@ class Getappointmentdata(APIView):
             if overlapping_appointments.exists():
                 return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
 
-            assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
+            # assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
+            try:
+                    assigned_user = CustomUser.objects.get(username=assigned_username)
+            except ObjectDoesNotExist:
+                return Response(
+                     {"error": f"Assigned user does not exist: {assigned_username}"},
+                     status=status.HTTP_400_BAD_REQUEST
+                     )
             print('assigned user',assigned_user.__dict__)
             # raise Exception 
             appointment = Appointment.objects.create(
@@ -373,10 +381,10 @@ class Getregistreduser(APIView):
     def get(self, request):
         try:
             # user_id = request.query_params.get('id')
-            # user=CustomUser.objects.get(id=user_id) 
+            users=CustomUser.objects.filter(registreduser=True) 
             # appointments = Appointment.appointments.all()
-            user_ids = Appointment.objects.values('user_id').distinct()
-            users = CustomUser.objects.filter(id__in=user_ids)
+            # user_ids = Appointment.objects.values('user_id').distinct()
+            # users = CustomUser.objects.filter(id__in=user_ids)
             user_serializer = CustomUserSerializer(users,many=True)
             response_data =  user_serializer.data
 
