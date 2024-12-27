@@ -16,8 +16,11 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from datetime import datetime
+from datetime import datetime,timedelta
 from django.db import transaction
+from django.utils import timezone
+import requests
+from .models import Appointment
 # Create your views here.
 
 
@@ -174,6 +177,39 @@ class UserSignupAPI(APIView):
                 user = CustomUser(email=email, username=username,registreduser=True)
                 user.set_password(password)
                 user.save()
+                try:
+                        customField_id="uuU8QYKdKbuJauoEXjWB"
+                        user_location_id="0rrNZinFkHbXD50u5nyq"
+                        url = f"https://services.leadconnectorhq.com/locations/{user_location_id}/customFields/{customField_id}"
+                        usernames = CustomUser.objects.all()
+                        userlist=CustomUserSerializer(usernames,many=True).data 
+                        username_list=[user['username'] for user in userlist]
+                        print("usernames",userlist)
+                        # Updated payload
+                        payload = {
+                            "name": "Artists: All123",  
+                            "model": "contact",      
+                            "options":  username_list[:1],
+                            "position": 850,         
+                            "dataType": "SINGLE_OPTIONS" 
+                        }
+
+                        # Headers
+                        headers = {
+                            "Authorization": f"Bearer {Authtable.objects.get(location_id=user_location_id).access_token}",
+                            "Version": "2021-07-28",
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        }
+
+                        # Make the PUT request
+                        response = requests.put(url, json=payload, headers=headers)
+                except Exception as e:
+                    
+                        return Response(
+                            {"message": "issue while updating custom field-Artists:All"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
                 return Response(
                     {"message": "Account created successfully."},
@@ -323,11 +359,16 @@ class Getappointmentdata(APIView):
 
             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
             
+            try:
+                    assigned_user = CustomUser.objects.get(username=assigned_username)
+            except ObjectDoesNotExist:
+                return Response(
+                     {"error": f"Assigned user does not exist: {assigned_username}"},
+                     status=status.HTTP_400_BAD_REQUEST
+                     )
             
-            
-            overlapping_appointments = Appointment.objects.filter(
-            user=user,
-            start_date=start_date,).filter(
+            print("assssss",assigned_user,user,Appointment)
+            overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
             Q(start_time__lt=end_time, end_time__gt=start_time)  
             
             )
@@ -336,13 +377,7 @@ class Getappointmentdata(APIView):
                 return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
 
             # assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
-            try:
-                    assigned_user = CustomUser.objects.get(username=assigned_username)
-            except ObjectDoesNotExist:
-                return Response(
-                     {"error": f"Assigned user does not exist: {assigned_username}"},
-                     status=status.HTTP_400_BAD_REQUEST
-                     )
+            
             print('assigned user',assigned_user.__dict__)
             # raise Exception 
             appointment = Appointment.objects.create(
@@ -414,114 +449,219 @@ class Removefromuserlist(APIView):
 
 
 
-# import requests
 
 
-# class CreateAccessToken(APIView):
-#     def post(self,request):
-#         try:
-#             user_location_id = request.data['location_id']
-#             code = request.data.get('code')
-#             if not user_location_id or not code:
-#                 raise ValidationError("location_id and code are required fields.")
+class CreateAccessToken(APIView):
+    def post(self,request):
+        try:
+            user_location_id = request.data['location_id']
+            code = request.data.get('code')
+            if not user_location_id or not code:
+                raise ValidationError("location_id and code are required fields.")
             
-#             access_token_instance = Authtable.objects.get(location_id=user_location_id)
-#             if access_token_instance:  
-#                 print("access token exists")
-#                 url ="https://services.leadconnectorhq.com/oauth/token"  
+            access_token_instance = Authtable.objects.get(location_id=user_location_id)
+            if access_token_instance:  
+                print("access token exists")
+                url ="https://services.leadconnectorhq.com/oauth/token"  
                 
-#                 payload = {
-#                     "client_id": " 676ea0af5376ec6a434adb0f-m56qun8a",
-#                     "client_secret": "8528d5d0-147b-4da1-865f-be8f5d5b98ff",
-#                     "grant_type": "refresh_token",
-#                     "code": code,
-#                     "user_type": "Location",
-#                     "refresh_token" : access_token_instance.refresh_token ,
+                payload = {
+                    "client_id": "676ea0af5376ec6a434adb0f-m56qun8a",
+                    "client_secret": "8528d5d0-147b-4da1-865f-be8f5d5b98ff",
+                    "grant_type": "refresh_token",
+                    "code": code,
+                    "user_type": "Location",
+                    "refresh_token" : access_token_instance.refresh_token ,
                     
-#                 }
+                }
             
-#                 headers = {
-#                     "Content-Type": "application/x-www-form-urlencoded",
-#                     "Accept": "application/json"
-#                 }
+                headers = {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json"
+                }
 
-#                 response = requests.post(url, data=payload, headers=headers)
+                response = requests.post(url, data=payload, headers=headers)
             
-#                 if response.ok:
+                if response.ok:
                 
-#                     access_token = response.json()['access_token']
-#                     refresh_token = response.json()['refresh_token']
-#                     expires_in = timezone.now() + timedelta(seconds=response.json()['expires_in'])
+                    access_token = response.json()['access_token']
+                    refresh_token = response.json()['refresh_token']
+                    expires_in = timezone.now() + timedelta(seconds=response.json()['expires_in'])
 
-#                     response_location_id = response.json()['locationId']
+                    response_location_id = response.json()['locationId']
 
-#                     if response_location_id == user_location_id:
+                    if response_location_id == user_location_id:
                        
-#                         access_token_instance.access_token = access_token
-#                         access_token_instance.refresh_token = refresh_token
-#                         access_token_instance.expires_in = expires_in         
+                        access_token_instance.access_token = access_token
+                        access_token_instance.refresh_token = refresh_token
+                        access_token_instance.expires_in = expires_in         
                     
-#                         access_token_instance.save()
+                        access_token_instance.save()
 
-#                         return Response({'message':  "Successfully created access token","data":response.json()},status=200)
+                        return Response({'message':  "Successfully created access token","data":response.json()},status=200)
 
-#                     else:
-#                         return Response({'message': "Wrong Location Id"},status=400)
+                    else:
+                        return Response({'message': "Wrong Location Id"},status=400)
                     
-#                 else:
-#                     print(response.text)
-#                     return Response({'message1': response.text},status=response.status_code) 
+                else:
+                    print(response.text)
+                    return Response({'message1': response.text},status=response.status_code) 
             
-#         except Authtable.DoesNotExist:
-#             print("doesnot exist")
-#             url ="https://services.leadconnectorhq.com/oauth/token"  
+        except Authtable.DoesNotExist:
+            print("doesnot exist")
+            url ="https://services.leadconnectorhq.com/oauth/token"  
             
-#             payload = {
-#                 "client_id": " 676ea0af5376ec6a434adb0f-m56qun8a",
-#                 "client_secret": "8528d5d0-147b-4da1-865f-be8f5d5b98ff",
-#                 "grant_type": "authorization_code",
-#                 "code": code,
-#                 "user_type": "Location",
+            payload = {
+                "client_id": "676ea0af5376ec6a434adb0f-m56qun8a",
+                "client_secret": "8528d5d0-147b-4da1-865f-be8f5d5b98ff",
+                "grant_type": "authorization_code",
+                "code": code,
+                "user_type": "Location",
                 
-#             }
+            }
         
-#             headers = {
-#                 "Content-Type": "application/x-www-form-urlencoded",
-#                 "Accept": "application/json"
-#             }
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json"
+            }
 
-#             response = requests.post(url, data=payload, headers=headers)
+            response = requests.post(url, data=payload, headers=headers)
         
-#             if response.ok:
+            if response.ok:
             
-#                 access_token = response.json()['access_token']
-#                 refresh_token = response.json()['refresh_token']
-#                 expiry_time = timezone.now() + timedelta(seconds=response.json()['expires_in'])
+                access_token = response.json()['access_token']
+                refresh_token = response.json()['refresh_token']
+                expiry_time = timezone.now() + timedelta(seconds=response.json()['expires_in'])
 
                
-#                 response_location_id = response.json()['locationId']
+                response_location_id = response.json()['locationId']
 
-#                 if response_location_id == user_location_id:
+                if response_location_id == user_location_id:
                              
-#                     instance = Authtable.objects.create(
-#                         location_id=response_location_id,
-#                         access_token=access_token,
-#                         refresh_token=refresh_token,
-#                         expires_in=expiry_time,
-#                     )
+                    instance = Authtable.objects.create(
+                        location_id=response_location_id,
+                        access_token=access_token,
+                        refresh_token=refresh_token,
+                        expires_in=expiry_time,
+                    )
                   
-#                     instance.save()
+                    instance.save()
 
-#                     return Response({'message':  "Successfully created access token"},status=200)
+                    return Response({'message':  "Successfully created access token"},status=200)
 
-#                 else:
-#                     return Response({'message': "Wrong Location Id"},status=400)
+                else:
+                    return Response({'message': "Wrong Location Id"},status=400)
                 
-#             else:
-#                 print(response.text)
-#                 return Response({'message': response.text},status=response.status_code)
+            else:
+                print(response.text)
+                return Response({'message': response.text},status=response.status_code)
 
-#         except Exception as e:
-#             print(e)
-#             return Response({'message3': str(e)}, status=500)
+        except Exception as e:
+            print(e)
+            return Response({'message3': str(e)}, status=500)
+
+
+
+class Appointmentonboarding(APIView):
+    def get(self,request):
+        try:
+            user_location_id = request.data['location_id']
+            contact_id=request.data['contact_id']
+        
+            print(user_location_id)
+            url = f"https://services.leadconnectorhq.com/contacts/{contact_id}/appointments"
+
+
+            headers = {
+                "Authorization": f"Bearer {Authtable.objects.get(location_id=user_location_id).access_token}",
+                "Version": "2021-07-28",
+                "Accept": "application/json"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            print(contact_id)
+
+            url1 = f"https://services.leadconnectorhq.com/contacts/{contact_id}"
+            response1= requests.get(url1,headers=headers)
+            combined_data = {
+                "appointments": response,
+                "contact_details": response1
+            }
+
+            return Response(combined_data,status=status.HTTP_200_OK) 
+        except Exception as e:
+            
+            return Response(str(e),status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class CustomfieldUpdation(APIView):
+        def get(self,request):
+            try:
+                user_location_id = request.query_params.get('location_id')
+                customField_id=request.query_params.get('customField_id')
+            
+                if not user_location_id or  not customField_id:
+
+                    return Response({"message":"invalid location_id or contact_id "},status=status.HTTP_200_OK)
+                url = f"https://services.leadconnectorhq.com/locations/{user_location_id}/customFields/{customField_id}"
+
+                headers = {
+                    "Authorization": f"Bearer {Authtable.objects.get(location_id=user_location_id).access_token}",
+                    "Version": "2021-07-28",
+                    "Accept": "application/json"
+                }
+
+                response = requests.get(url, headers=headers)
+
+                print(response.json())
+                return Response(response.json(),status=status.HTTP_200_OK) 
+            except Exception as e:
+                return Response(str(e),status=status.HTTP_400_BAD_REQUEST)
+
+
+
+        def put(self,request):
+            try:
+                user_location_id = request.data.get('location_id')
+                customField_id=request.data.get('customField_id')
+            
+                if not user_location_id or  not customField_id:
+
+                    return Response({"message":"invalid location_id or contact_id "},status=status.HTTP_200_OK)
+                
+
+                url = f"https://services.leadconnectorhq.com/locations/{user_location_id}/customFields/{customField_id}"
+                usernames = CustomUser.objects.all()
+                userlist=CustomUserSerializer(usernames,many=True).data 
+                username_list=[user['username'] for user in userlist]
+                print("usernames",userlist)
+                # Updated payload
+                payload = {
+                    "name": "Artists: All123",  
+                    "model": "contact",      
+                    "options":  username_list[:10],
+                    "position": 850,         
+                    "dataType": "SINGLE_OPTIONS" 
+                }
+
+                # Headers
+                headers = {
+                    "Authorization": f"Bearer {Authtable.objects.get(location_id=user_location_id).access_token}",
+                    "Version": "2021-07-28",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+
+                # Make the PUT request
+                response = requests.put(url, json=payload, headers=headers)
+
+                # Print the response
+                print(response.json())
+
+                return Response(response.json(),status=status.HTTP_200_OK) 
+            except Exception as e:
+                return Response(str(e),status=status.HTTP_400_BAD_REQUEST)
+
+
 
