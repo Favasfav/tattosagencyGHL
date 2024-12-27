@@ -55,4 +55,16 @@ class Appointment(models.Model):
     def __str__(self):
         return f"Appointment for {self.user.email} on {self.start_date}"
  
-    
+
+
+from django.db import models
+
+# Create your models here.
+class Authtable(models.Model):
+    location_id=models.CharField(unique=True)
+    access_token=models.CharField()
+    refresh_token=models.CharField()
+    expires_in =models.DateTimeField( auto_now_add=False)
+
+    def __str__(self):
+        return self.access_token()

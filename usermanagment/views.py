@@ -156,6 +156,7 @@ class UserSignupAPI(APIView):
                 if not existing_user.password:
                     existing_user.set_password(password)
                     existing_user.save()
+
                     return Response(
                         {"message": "Password set successfully for existing user."},
                         status=status.HTTP_200_OK
@@ -354,8 +355,7 @@ class Getappointmentdata(APIView):
                 tatto_idea=tattoo_idea,
                 reference_image=reference_images
             )
-            if appointment:
-                user.appointmentbooked=True
+           
             serializer = AppointmentSerializer(appointment)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -376,7 +376,7 @@ class Getappointmentdata(APIView):
 
 
 class Getregistreduser(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
@@ -408,3 +408,120 @@ class Removefromuserlist(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_200_OK)
+
+
+
+
+
+
+import requests
+
+
+# class CreateAccessToken(APIView):
+#     def post(self,request):
+#         try:
+#             user_location_id = request.data['location_id']
+#             code = request.data.get('code')
+#             if not user_location_id or not code:
+#                 raise ValidationError("location_id and code are required fields.")
+            
+#             access_token_instance = Authtable.objects.get(location_id=user_location_id)
+#             if access_token_instance:  
+#                 print("access token exists")
+#                 url ="https://services.leadconnectorhq.com/oauth/token"  
+                
+#                 payload = {
+#                     "client_id": " 676ea0af5376ec6a434adb0f-m56qun8a",
+#                     "client_secret": "8528d5d0-147b-4da1-865f-be8f5d5b98ff",
+#                     "grant_type": "refresh_token",
+#                     "code": code,
+#                     "user_type": "Location",
+#                     "refresh_token" : access_token_instance.refresh_token ,
+                    
+#                 }
+            
+#                 headers = {
+#                     "Content-Type": "application/x-www-form-urlencoded",
+#                     "Accept": "application/json"
+#                 }
+
+#                 response = requests.post(url, data=payload, headers=headers)
+            
+#                 if response.ok:
+                
+#                     access_token = response.json()['access_token']
+#                     refresh_token = response.json()['refresh_token']
+#                     expires_in = timezone.now() + timedelta(seconds=response.json()['expires_in'])
+
+#                     response_location_id = response.json()['locationId']
+
+#                     if response_location_id == user_location_id:
+                       
+#                         access_token_instance.access_token = access_token
+#                         access_token_instance.refresh_token = refresh_token
+#                         access_token_instance.expires_in = expires_in         
+                    
+#                         access_token_instance.save()
+
+#                         return Response({'message':  "Successfully created access token","data":response.json()},status=200)
+
+#                     else:
+#                         return Response({'message': "Wrong Location Id"},status=400)
+                    
+#                 else:
+#                     print(response.text)
+#                     return Response({'message1': response.text},status=response.status_code) 
+            
+#         except Authtable.DoesNotExist:
+#             print("doesnot exist")
+#             url ="https://services.leadconnectorhq.com/oauth/token"  
+            
+#             payload = {
+#                 "client_id": " 676ea0af5376ec6a434adb0f-m56qun8a",
+#                 "client_secret": "8528d5d0-147b-4da1-865f-be8f5d5b98ff",
+#                 "grant_type": "authorization_code",
+#                 "code": code,
+#                 "user_type": "Location",
+                
+#             }
+        
+#             headers = {
+#                 "Content-Type": "application/x-www-form-urlencoded",
+#                 "Accept": "application/json"
+#             }
+
+#             response = requests.post(url, data=payload, headers=headers)
+        
+#             if response.ok:
+            
+#                 access_token = response.json()['access_token']
+#                 refresh_token = response.json()['refresh_token']
+#                 expiry_time = timezone.now() + timedelta(seconds=response.json()['expires_in'])
+
+               
+#                 response_location_id = response.json()['locationId']
+
+#                 if response_location_id == user_location_id:
+                             
+#                     instance = Authtable.objects.create(
+#                         location_id=response_location_id,
+#                         access_token=access_token,
+#                         refresh_token=refresh_token,
+#                         expires_in=expiry_time,
+#                     )
+                  
+#                     instance.save()
+
+#                     return Response({'message':  "Successfully created access token"},status=200)
+
+#                 else:
+#                     return Response({'message': "Wrong Location Id"},status=400)
+                
+#             else:
+#                 print(response.text)
+#                 return Response({'message': response.text},status=response.status_code)
+
+#         except Exception as e:
+#             print(e)
+#             return Response({'message3': str(e)}, status=500)
+

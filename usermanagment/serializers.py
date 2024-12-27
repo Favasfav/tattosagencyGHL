@@ -30,7 +30,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']  
 
 class AppointmentSerializer(serializers.ModelSerializer):
-    # assigned_user = CustomUserSerializer(read_only=True) 
+    assigned_user = CustomUserSerializer(read_only=True) 
     user = CustomUserSerializer(read_only=True)  
     
     class Meta:

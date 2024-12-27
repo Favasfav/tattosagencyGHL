@@ -18,6 +18,8 @@ urlpatterns = [
     path('get-formdata-appointment/',Getappointmentdata.as_view(),name='getappointmentdata'),
     path('get-registred-users/',Getregistreduser.as_view(),name='getuserslist'),
     path('remove-registred-users/',Removefromuserlist.as_view(),name='removeregistreduser'),
+    
+    path('createtoken-onboarding/', CreateAccessToken.as_view(), name='create_token'),
 
     
 ]
