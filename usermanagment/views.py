@@ -207,7 +207,7 @@ class UserSignupAPI(APIView):
                 except Exception as e:
                     
                         return Response(
-                            {"message": "issue while updating custom field-Artists:All"+ {str(e)}},
+                            {"message":  {str(e)}},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
