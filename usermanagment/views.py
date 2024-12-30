@@ -189,7 +189,7 @@ class UserSignupAPI(APIView):
                         payload = {
                             "name": "Artists: All123",  
                             "model": "contact",      
-                            "options":  username_list[:1],
+                            "options":  username_list,
                             "position": 850,         
                             "dataType": "SINGLE_OPTIONS" 
                         }
