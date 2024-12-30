@@ -368,14 +368,14 @@ class Getappointmentdata(APIView):
                      status=status.HTTP_400_BAD_REQUEST
                      )
             
-            print("assssss",assigned_user,user,Appointment)
+            print("assssss",assigned_user,user)
             # overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
             # Q(start_time__lt=end_time, end_time__gt=start_time)  
             
             # )
 
-            if overlapping_appointments.exists():
-                return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
+            # if overlapping_appointments.exists():
+            #     return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
 
             # assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
             
