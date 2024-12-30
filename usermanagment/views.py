@@ -178,6 +178,8 @@ class UserSignupAPI(APIView):
                 user.set_password(password)
                 user.save()
                 try:
+            #         "id": "AjUJ2bojgCd4zQBUCwPc",
+            # "name": "Artists: All",
                         customField_id="uuU8QYKdKbuJauoEXjWB"
                         user_location_id="0rrNZinFkHbXD50u5nyq"
                         url = f"https://services.leadconnectorhq.com/locations/{user_location_id}/customFields/{customField_id}"
@@ -185,7 +187,6 @@ class UserSignupAPI(APIView):
                         userlist=CustomUserSerializer(usernames,many=True).data 
                         username_list=[user['username'] for user in userlist]
                         print("usernames",userlist)
-                        # Updated payload
                         payload = {
                             "name": "Artists: All123",  
                             "model": "contact",      
@@ -202,7 +203,6 @@ class UserSignupAPI(APIView):
                             "Accept": "application/json"
                         }
 
-                        # Make the PUT request
                         response = requests.put(url, json=payload, headers=headers)
                 except Exception as e:
                     
@@ -258,9 +258,9 @@ class AppointmentCreateView(APIView):
             appointment = Appointment.objects.create(
                 user=profile,
                 appointment_title=data["appointment_title"],
-                start_date=data["start_date"],
-                start_time=data["start_time"],
-                end_time=data.get("end_time"),
+                # start_date=data["start_date"],
+                # start_time=data["start_time"],
+                # end_time=data.get("end_time"),
                 assigned_user=assigned_user,
             )
             serializer = AppointmentSerializer(appointment)
@@ -334,13 +334,14 @@ class Getappointmentdata(APIView):
             # Extract the 'customData' from the request data
             data = request.data
             custom_data = data.get('customData', {})
+            print("customdata",custom_data)
             
             username = custom_data.get('username', None) 
             email = custom_data.get('email', None)  
             appointment_location = custom_data.get('appointment_location', None)  
-            start_time = custom_data.get('start_time', None)  
-            end_time = custom_data.get('end_time', None)  
-            start_date = custom_data.get('start_date', None) 
+            # start_time = custom_data.get('start_time', None)  
+            # end_time = custom_data.get('end_time', None)  
+            # start_date = custom_data.get('start_date', None) 
             tattoo_idea = custom_data.get('tatto_idea', None)  
             reference_images = custom_data.get('reference_Images', None)  
             assigned_username = custom_data.get('assigned_user', None)  
@@ -368,10 +369,10 @@ class Getappointmentdata(APIView):
                      )
             
             print("assssss",assigned_user,user,Appointment)
-            overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
-            Q(start_time__lt=end_time, end_time__gt=start_time)  
+            # overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
+            # Q(start_time__lt=end_time, end_time__gt=start_time)  
             
-            )
+            # )
 
             if overlapping_appointments.exists():
                 return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
@@ -380,19 +381,21 @@ class Getappointmentdata(APIView):
             
             print('assigned user',assigned_user.__dict__)
             # raise Exception 
-            appointment = Appointment.objects.create(
-                user=user,
-                appointment_location=appointment_location,
-                start_date=start_date,
-                start_time=start_time,
-                end_time=end_time,
-                assigned_user=assigned_user,
-                tatto_idea=tattoo_idea,
-                reference_image=reference_images
-            )
+            # appointment = Appointment.objects.create(
+            #     user=user,
+            #     appointment_location=appointment_location,
+            #     # start_date=start_date,
+            #     # start_time=start_time,
+            #     # end_time=end_time,
+            #     assigned_user=assigned_user,
+            #     tatto_idea=tattoo_idea,
+            #     reference_image=reference_images
+            # )
            
-            serializer = AppointmentSerializer(appointment)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # serializer = AppointmentSerializer(appointment)
+            # return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response( status=status.HTTP_201_CREATED)
+
 
         except KeyError as e:
             return Response(
