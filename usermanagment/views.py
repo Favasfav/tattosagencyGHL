@@ -218,7 +218,7 @@ class UserSignupAPI(APIView):
                     )
 
                 return Response(
-                    {"message": "Account created successfully."},
+                    {"message": "Account created successfully.","data":response},
                     status=status.HTTP_201_CREATED,
                 )
             else:
