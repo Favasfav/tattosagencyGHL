@@ -416,6 +416,102 @@ class Getappointments(APIView):
 #             )
 
 
+# class Getappointmentdata(APIView):
+#     @transaction.atomic
+#     def post(self, request):
+#         try:
+#             print("API Webhook called", request.data)
+
+#             # Extract 'customData' from the request
+#             data = request.data
+#             custom_data = data.get("customData", {})
+#             print("customdata", custom_data)
+
+#             # Parse common data
+#             username = custom_data.get("username")
+#             email = custom_data.get("email")
+#             appointment_location = custom_data.get("appointment_location")
+#             tattoo_idea = custom_data.get("tatto_idea")
+#             reference_images = custom_data.get("reference_Images")
+#             assigned_username = custom_data.get("assigned_user")
+#             if not email:
+#                 return Response(
+#                     {"error": "Email is required."},
+#                     status=status.HTTP_400_BAD_REQUEST,
+#                 )
+#             # Get or create user
+#             user, created = CustomUser.objects.get_or_create(
+#                 email=email, defaults={"username": username}  )
+
+#             # Validate assigned user
+#             try:
+#                 assigned_user = CustomUser.objects.get(username=assigned_username)
+#             except CustomUser.DoesNotExist:
+#                 return Response(
+#                     {"error": f"Assigned user does not exist: {assigned_username}"},
+#                     status=status.HTTP_400_BAD_REQUEST,
+#                 )
+#             appointment = Appointment.objects.create(
+#                 user=user,
+#                 appointment_title=f"Tattoo Appointment:{username}",
+#                 appointment_location=appointment_location,
+#                 tatto_idea=tattoo_idea,
+#                 reference_image=reference_images,
+#                 assigned_user=assigned_user,
+#             )
+#             print(appointment,"jjjjjjjjjjjj")
+#             # Dynamically parse and create sessions
+#             for i in range(1, 7):  # Assuming up to 6 sessions
+#                 session_date = custom_data.get(f"s{i}_date", None)
+#                 start_time = custom_data.get(f"s{i}_starttime", None)
+#                 end_time = custom_data.get(f"s{i}_endtime", None)
+
+#                 if session_date and start_time and end_time:
+#                     session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
+#                     start_time = datetime.strptime(start_time, "%I:%M %p").time()
+#                     end_time = datetime.strptime(end_time, "%I:%M %p").time()
+
+#                     conflict_exists = Session.objects.filter(
+#                         appointment__assigned_user=assigned_user,
+#                         session_date=session_date,
+#                         start_time__lt=end_time,
+#                         end_time__gt=start_time,
+#                     ).exists()
+
+#                     if conflict_exists:
+#                         return Response(
+#                             {
+#                                 "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
+#                             },
+#                             status=status.HTTP_400_BAD_REQUEST,
+#                         )
+#                     session_no=i+1
+#                     print("session id",session_no)
+#                     Session.objects.create(
+#                         appointment=appointment,
+#                         session_date=session_date,
+#                         start_time=start_time,
+#                         end_time=end_time,
+#                         session_no=session_no
+#                     )
+
+#             return Response(
+#                 {"message": "Appointment and sessions created successfully."},
+#                 status=status.HTTP_201_CREATED,
+#             )
+
+#         except KeyError as e:
+#             return Response(
+#                 {"error": f"Missing required field: {str(e)}"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+
+#         except Exception as e:
+#             print(f"Error occurred: {str(e)}")
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+
 class Getappointmentdata(APIView):
     @transaction.atomic
     def post(self, request):
@@ -427,13 +523,26 @@ class Getappointmentdata(APIView):
             custom_data = data.get("customData", {})
             print("customdata", custom_data)
 
-            # Parse common data
+            # Parse common data with validation
             username = custom_data.get("username")
             email = custom_data.get("email")
+            print(email,"email........")
             appointment_location = custom_data.get("appointment_location")
             tattoo_idea = custom_data.get("tatto_idea")
             reference_images = custom_data.get("reference_Images")
             assigned_username = custom_data.get("assigned_user")
+            
+            if not email:
+                return Response(
+                    {"error": "Email is required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if not username:
+                return Response(
+                    {"error": "Username is required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # Get or create user
             user, created = CustomUser.objects.get_or_create(
@@ -448,56 +557,62 @@ class Getappointmentdata(APIView):
                     {"error": f"Assigned user does not exist: {assigned_username}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            # Create the appointment
             appointment = Appointment.objects.create(
                 user=user,
-                appointment_title=f"Tattoo Appointment:{username}",
+                appointment_title=f"Tattoo Appointment: {username}",
                 appointment_location=appointment_location,
                 tatto_idea=tattoo_idea,
                 reference_image=reference_images,
                 assigned_user=assigned_user,
             )
+            print(appointment, "Created appointment")
+
             # Dynamically parse and create sessions
             for i in range(1, 7):  # Assuming up to 6 sessions
                 session_date = custom_data.get(f"s{i}_date", None)
                 start_time = custom_data.get(f"s{i}_starttime", None)
                 end_time = custom_data.get(f"s{i}_endtime", None)
 
-                if session_date and start_time and end_time:
-                    session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
-                    start_time = datetime.strptime(start_time, "%I:%M %p").time()
-                    end_time = datetime.strptime(end_time, "%I:%M %p").time()
+                if not session_date or not start_time or not end_time:
+                    continue  # Skip if session data is incomplete
 
-                    conflict_exists = Session.objects.filter(
-                        appointment__assigned_user=assigned_user,
-                        session_date=session_date,
-                        start_time__lt=end_time,
-                        end_time__gt=start_time,
-                    ).exists()
+                # Convert string to appropriate datetime format
+                session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
+                start_time = datetime.strptime(start_time, "%I:%M %p").time()
+                end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
-                    if conflict_exists:
-                        return Response(
-                            {
-                                "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
+                # Check for session conflicts
+                conflict_exists = Session.objects.filter(
+                    appointment__assigned_user=assigned_user,
+                    session_date=session_date,
+                    start_time__lt=end_time,
+                    end_time__gt=start_time,
+                ).exists()
 
-                    Session.objects.create(
-                        appointment=appointment,
-                        session_date=session_date,
-                        start_time=start_time,
-                        end_time=end_time,
+                if conflict_exists:
+                    return Response(
+                        {
+                            "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
+
+                # Create the session
+                session_no = i
+                print(f"Creating session {session_no} for {session_date} from {start_time} to {end_time}")
+                Session.objects.create(
+                    appointment=appointment,
+                    session_date=session_date,
+                    start_time=start_time,
+                    end_time=end_time,
+                    session_no=session_no
+                )
 
             return Response(
                 {"message": "Appointment and sessions created successfully."},
                 status=status.HTTP_201_CREATED,
-            )
-
-        except KeyError as e:
-            return Response(
-                {"error": f"Missing required field: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
             )
 
         except Exception as e:
@@ -505,6 +620,7 @@ class Getappointmentdata(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 
 from django.db.models import Count
@@ -842,7 +958,105 @@ class GetBookingCountsLastWeekMonth(APIView):
 
 
 # update or reschedule appointment data
-class RescheduleAppintmentSession(APIView):
+# class RescheduleAppintmentSession(APIView):
+#     @transaction.atomic
+#     def post(self, request):
+#         try:
+#             print("API Webhook called", request.data)
+
+#             data = request.data
+#             custom_data = data.get("customData", {})
+
+#             session_keys = ["s1_starttime", "s2_starttime", "s3_starttime", "s4_starttime", "s5_starttime", "s6_starttime"]
+
+#             rescheduled_sessions = []
+
+#             for key in session_keys:
+#                 if key in custom_data and custom_data[key]:  
+#                     rescheduled_sessions.append(key)
+
+#             print("Rescheduled Sessions:", rescheduled_sessions)
+
+            
+#             print("customdata", custom_data)
+
+#             username = custom_data.get("username")
+#             email = custom_data.get("email")
+#             appointment_location = custom_data.get("appointment_location")
+#             assigned_username = custom_data.get("assigned_user")
+
+#             user = CustomUser.objects.get(email=email)
+
+#             # Validate assigned user
+#             try:
+#                 assigned_user = CustomUser.objects.get(username=assigned_username)
+#             except CustomUser.DoesNotExist:
+#                 return Response(
+#                     {"error": f"Assigned user does not exist: {assigned_username}"},
+#                     status=status.HTTP_400_BAD_REQUEST,
+#                 )
+
+#             appointment = Appointment.objects.filter(
+#                 assigned_user=assigned_user, user=user
+#             ).first()
+#             if not appointment:
+#                 return Response(
+#                     {"error": "Appointment not found"},
+#                     status=status.HTTP_400_BAD_REQUEST,
+#                 )
+#             if rescheduled_sessions:
+                
+
+#                 for i in rescheduled_sessions: 
+#                     session_date = custom_data.get(f"s{i}_date", None)
+#                     start_time = custom_data.get(f"s{i}_starttime", None)
+#                     end_time = custom_data.get(f"s{i}_endtime", None)
+
+#                     if session_date and start_time and end_time:
+#                         session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
+#                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
+#                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
+
+#                         excisting_appointment = Session.objects.filter(
+#                             appointment__assigned_user=assigned_user,
+#                             session_date=session_date,
+#                             start_time=end_time,
+#                             end_time__gt=start_time,
+#                         )
+
+#                         if excisting_appointment:
+#                             Session.objects.filter(appointment=appointment).update(
+#                             session_date=session_date,
+#                             start_time=start_time,
+#                             end_time=end_time,
+#                         )
+#                         return Response(
+#                                     {"message": "Appointment and sessions created successfully."},
+#                                     status=status.HTTP_201_CREATED,
+#                                 )
+
+                        
+
+#                 return Response(
+#                     {"message": "Appointment and sessions created successfully."},
+#                     status=status.HTTP_201_CREATED,
+#                 )
+
+#         except KeyError as e:
+#             return Response(
+#                 {"error": f"Missing required field: {str(e)}"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+
+#         except Exception as e:
+#             print(f"Error occurred: {str(e)}")
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+
+
+
+class RescheduleAppointmentSession(APIView):
     @transaction.atomic
     def post(self, request):
         try:
@@ -856,22 +1070,17 @@ class RescheduleAppintmentSession(APIView):
             rescheduled_sessions = []
 
             for key in session_keys:
-                if key in custom_data and custom_data[key]:  
+                if key in custom_data and custom_data[key]:
                     rescheduled_sessions.append(key)
 
             print("Rescheduled Sessions:", rescheduled_sessions)
 
-            
-            print("customdata", custom_data)
-
             username = custom_data.get("username")
             email = custom_data.get("email")
-            appointment_location = custom_data.get("appointment_location")
             assigned_username = custom_data.get("assigned_user")
 
             user = CustomUser.objects.get(email=email)
 
-            # Validate assigned user
             try:
                 assigned_user = CustomUser.objects.get(username=assigned_username)
             except CustomUser.DoesNotExist:
@@ -888,42 +1097,51 @@ class RescheduleAppintmentSession(APIView):
                     {"error": "Appointment not found"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if rescheduled_sessions:
-                
 
-                for i in rescheduled_sessions: 
-                    session_date = custom_data.get(f"s{i}_date", None)
-                    start_time = custom_data.get(f"s{i}_starttime", None)
-                    end_time = custom_data.get(f"s{i}_endtime", None)
+            if rescheduled_sessions:
+                for session_key in rescheduled_sessions:
+                    session_number = int(session_key[1])  # Extract number from s1, s2, etc.
+                    print("session number",session_number)
+                    # Retrieve session-specific data
+                    session_date = custom_data.get(f"s{session_number}_date")
+                    start_time = custom_data.get(f"s{session_number}_starttime")
+                    end_time = custom_data.get(f"s{session_number}_endtime")
 
                     if session_date and start_time and end_time:
+                        # Convert string to date and time objects
                         session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
-                        excisting_appointment = Session.objects.filter(
-                            appointment__assigned_user=assigned_user,
+                        # Check for existing sessions that might conflict
+                        existing_session = Session.objects.filter(
+                            appointment=appointment,
+                            session_no=session_number,
                             session_date=session_date,
-                            start_time=end_time,
+                            start_time__lt=end_time,
                             end_time__gt=start_time,
                         )
 
-                        if excisting_appointment:
-                            Session.objects.filter(appointment=appointment).update(
-                            session_date=session_date,
-                            start_time=start_time,
-                            end_time=end_time,
-                        )
-                        return Response(
-                                    {"message": "Appointment and sessions created successfully."},
-                                    status=status.HTTP_201_CREATED,
-                                )
-
-                        
+                        if existing_session.exists():
+                            # If there is an existing session, update it
+                            existing_session.update(
+                                session_date=session_date,
+                                start_time=start_time,
+                                end_time=end_time,
+                            )
+                        # else:
+                        #     # Otherwise, create a new session with the given session number
+                        #     Session.objects.create(
+                        #         appointment=appointment,
+                        #         session_no=session_number,
+                        #         session_date=session_date,
+                        #         start_time=start_time,
+                        #         end_time=end_time,
+                        #     )
 
                 return Response(
-                    {"message": "Appointment and sessions created successfully."},
-                    status=status.HTTP_201_CREATED,
+                    {"message": "Appointment and sessions rescheduled successfully."},
+                    status=status.HTTP_200_OK,
                 )
 
         except KeyError as e:
@@ -931,7 +1149,6 @@ class RescheduleAppintmentSession(APIView):
                 {"error": f"Missing required field: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         except Exception as e:
             print(f"Error occurred: {str(e)}")
             return Response(

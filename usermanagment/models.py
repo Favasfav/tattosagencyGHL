@@ -53,7 +53,7 @@ class Appointment(models.Model):
     
 
     def __str__(self):
-        return f"Appointment for {self.user.email} on {self.start_date}"
+        return f"Appointment for {self.user.email}"
  
 
 class Session(models.Model):
