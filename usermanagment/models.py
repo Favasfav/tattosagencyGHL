@@ -61,7 +61,7 @@ class Session(models.Model):
     start_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
     session_date = models.DateField()  # This captures the date for each session.    
-
+    session_no = models.IntegerField(unique=True, null=True, blank=True)
     def __str__(self):
         return f"Session on {self.session_date} from {self.start_time} to {self.end_time}"
 from django.db import models
