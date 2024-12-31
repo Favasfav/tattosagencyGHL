@@ -21,6 +21,8 @@ urlpatterns = [
     
     path('createtoken-onboarding/', CreateAccessToken.as_view(), name='create_token'),
     path('get-customfield/', CustomfieldUpdation.as_view(), name='getcustomfield'),
+    # path('get-appointmentcount-filter/', GetBookingCountsLastWeekMonth.as_view(), name='getappointmentfilter'),
+
 
 
     

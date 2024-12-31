@@ -7,7 +7,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
-from .serializers import SignupSerializer, LoginSerializer, AppointmentSerializer,CustomUserSerializer
+from .serializers import SignupSerializer, LoginSerializer, AppointmentSerializer,CustomUserSerializer,CustomUserdetailsSerializer
 from rest_framework import status
 from .models import CustomUser
 from django.contrib.auth import authenticate
@@ -15,12 +15,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Q,Count
 from datetime import datetime,timedelta
 from django.db import transaction
 from django.utils import timezone
 import requests
 from .models import Appointment
+from django.db.models.functions import TruncDate
+from dateutil.relativedelta import relativedelta
+
 # Create your views here.
 
 
@@ -442,18 +445,15 @@ class Getappointmentdata(APIView):
                     {"error": f"Assigned user does not exist: {assigned_username}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-            # Create the appointment
             appointment = Appointment.objects.create(
                 user=user,
-                appointment_title="Tattoo Appointment",  # Example title
+                appointment_title=f"Tattoo Appointment:{username}", 
                 appointment_location=appointment_location,
                 tatto_idea=tattoo_idea,
                 reference_image=reference_images,
                 assigned_user=assigned_user
             )
-
-            # Dynamically parse and create sessions
+             # Dynamically parse and create sessions
             for i in range(1, 7):  # Assuming up to 6 sessions
                 session_date = custom_data.get(f's{i}_date',None)
                 start_time = custom_data.get(f's{i}_starttime',None)
@@ -464,6 +464,18 @@ class Getappointmentdata(APIView):
                     start_time = datetime.strptime(start_time, '%I:%M %p').time()
                     end_time = datetime.strptime(end_time, '%I:%M %p').time()
 
+                    conflict_exists = Session.objects.filter(
+                        appointment__assigned_user=assigned_user,
+                        session_date=session_date,
+                        start_time__lt=end_time,  
+                        end_time__gt=start_time ).exists()
+
+                    if conflict_exists:
+                        return Response(
+                            {"error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
                     Session.objects.create(
                         appointment=appointment,
                         session_date=session_date,
@@ -472,6 +484,10 @@ class Getappointmentdata(APIView):
                     )
 
             return Response({"message": "Appointment and sessions created successfully."}, status=status.HTTP_201_CREATED)
+
+          
+
+           
 
         except KeyError as e:
             return Response(
@@ -486,27 +502,45 @@ class Getappointmentdata(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
+from django.db.models import Count
 class Getregistreduser(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        try:
-            # user_id = request.query_params.get('id')
-            users=CustomUser.objects.filter(registreduser=True) 
-            # appointments = Appointment.appointments.all()
-            # user_ids = Appointment.objects.values('user_id').distinct()
-            # users = CustomUser.objects.filter(id__in=user_ids)
-            user_serializer = CustomUserSerializer(users,many=True)
-            response_data =  user_serializer.data
+    # def get(self, request):
+    #     try:
+    #         # user_id = request.query_params.get('id')
+    #         users=CustomUser.objects.filter(registreduser=True) 
+    #         # appointments = Appointment.appointments.all()
+    #         # user_ids = Appointment.objects.values('user_id').distinct()
+    #         # users = CustomUser.objects.filter(id__in=user_ids)
+    #         users_no = CustomUser.objects.filter(registreduser=True).annotate(no_of_booking=Count('assigned_appointments'))
+
+    #     # Serialize users with the annotated booking count
+    #         user_serializer_no = CustomUserSerializer(users_no, many=True)
+    #         # user_serializer = CustomUserSerializer(users,many=True)
+    #         response_data =  user_serializer_no.data
 
 
-            return Response(response_data, status=status.HTTP_200_OK)
+    #         return Response(response_data, status=status.HTTP_200_OK)
             
 
-        except Exception as e:
-            return Response(str(e), status=status.HTTP_200_OK)
+    #     except Exception as e:
+    #         return Response(str(e), status=status.HTTP_200_OK)
+    def get(self, request):
+        try:
+            # Annotate registered users with the number of bookings
+            users_with_booking_counts = CustomUser.objects.filter(
+                registreduser=True
+            ).annotate(no_of_booking=Count('assigned_appointments'))
 
+            # Serialize users with the annotated booking count
+            user_serializer = CustomUserdetailsSerializer(users_with_booking_counts, many=True)
+
+            # Return the serialized response
+            return Response(user_serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class Removefromuserlist(APIView):
     # permission_classes = [IsAuthenticated]
@@ -743,3 +777,46 @@ class CustomfieldUpdation(APIView):
 
 
 
+
+# class GetBookingCountsLastWeekMonth(APIView):
+#     def get(self, request):
+#         try:
+#             # Calculate the start and end of last week
+#             today = datetime.now().date()
+#             last_week_start = today - timedelta(days=today.weekday() + 7)
+#             last_week_end = last_week_start + timedelta(days=6)
+
+#             # Calculate the start and end of last month
+#             first_day_of_this_month = today.replace(day=1)
+#             last_month_end = first_day_of_this_month - timedelta(days=1)
+#             last_month_start = last_month_end.replace(day=1)
+
+#             # Base queryset for users
+#             users = CustomUser.objects.filter(registreduser=True)
+
+#             # Filter for last week and annotate booking count
+#             if request.query_params.get('week', '').lower() == 'last':
+#                 users = users.annotate(
+#                     no_of_booking=Count('appointments__sessions', filter=Q(
+#                         appointments__sessions__session_date__range=[last_week_start, last_week_end]
+#                     ))
+#                 )
+#             # Filter for last month and annotate booking count
+#             elif request.query_params.get('month', '').lower() == 'last':
+#                 users = users.annotate(
+#                     no_of_booking=Count('appointments__sessions', filter=Q(
+#                         appointments__sessions__session_date__range=[last_month_start, last_month_end]
+#                     ))
+#                 )
+#             else:
+#                 # Default: Total bookings for all time
+#                 users = users.annotate(
+#                     no_of_booking=Count('appointments__sessions')
+#                 )
+
+#             # Serialize and return data
+#             user_serializer = CustomUserSerializer(users, many=True)
+#             return Response(user_serializer.data, status=status.HTTP_200_OK)
+
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
