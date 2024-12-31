@@ -50,4 +50,4 @@ class CustomUserdetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
 
-        fields = ['id', 'username', 'email','no_of_booking']  
+        fields = ['id', 'username', 'email','session_count']  
