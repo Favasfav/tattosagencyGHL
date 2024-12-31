@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from rest_framework.exceptions import ValidationError
 
 # Create your views here.
 from rest_framework.response import Response
@@ -1124,6 +1125,9 @@ class RescheduleAppointmentSession(APIView):
                                 start_time=start_time,
                                 end_time=end_time,
                             )
+
+
+                        
                         # else:
                         #     # Otherwise, create a new session with the given session number
                         #     Session.objects.create(
