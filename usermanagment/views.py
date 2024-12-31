@@ -23,6 +23,7 @@ import requests
 from .models import Appointment
 from django.db.models.functions import TruncDate
 from dateutil.relativedelta import relativedelta
+from datetime import date
 
 # Create your views here.
 
@@ -777,46 +778,68 @@ class CustomfieldUpdation(APIView):
 
 
 
+class GetBookingCountsLastWeekMonth(APIView):
+    def get(self, request):
+        try:
+            # Determine the date range
+            today = date.today()
+            start_date = None
+            end_date = None
 
-# class GetBookingCountsLastWeekMonth(APIView):
-#     def get(self, request):
-#         try:
-#             # Calculate the start and end of last week
-#             today = datetime.now().date()
-#             last_week_start = today - timedelta(days=today.weekday() + 7)
-#             last_week_end = last_week_start + timedelta(days=6)
+            week_query = request.query_params.get('week')
+            month_query = request.query_params.get('month')
+            start_date_str = request.query_params.get('start_date')
+            end_date_str = request.query_params.get('end_date')
 
-#             # Calculate the start and end of last month
-#             first_day_of_this_month = today.replace(day=1)
-#             last_month_end = first_day_of_this_month - timedelta(days=1)
-#             last_month_start = last_month_end.replace(day=1)
+            if week_query == "last":
+                # Last 7 days
+                end_date = today
+                start_date = today - timedelta(days=7)
+            elif month_query == "last":
+                # Previous calendar month
+                end_date = date.today()
+                start_date = end_date - timedelta(days=30)
+            elif start_date_str and end_date_str:
+                # Custom date range
+                try:
+                    start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                    end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {"error": "Invalid date format. Use 'YYYY-MM-DD'."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                return Response(
+                    {"error": "Provide 'week=last', 'month=last', or 'start_date' and 'end_date'."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-#             # Base queryset for users
-#             users = CustomUser.objects.filter(registreduser=True)
+            sessions_count = (
+                Session.objects
+                .filter(session_date__range=(start_date, end_date))
+                .values('appointment__assigned_user')  
+                .annotate(session_count=Count('id'))
+            )
 
-#             # Filter for last week and annotate booking count
-#             if request.query_params.get('week', '').lower() == 'last':
-#                 users = users.annotate(
-#                     no_of_booking=Count('appointments__sessions', filter=Q(
-#                         appointments__sessions__session_date__range=[last_week_start, last_week_end]
-#                     ))
-#                 )
-#             # Filter for last month and annotate booking count
-#             elif request.query_params.get('month', '').lower() == 'last':
-#                 users = users.annotate(
-#                     no_of_booking=Count('appointments__sessions', filter=Q(
-#                         appointments__sessions__session_date__range=[last_month_start, last_month_end]
-#                     ))
-#                 )
-#             else:
-#                 # Default: Total bookings for all time
-#                 users = users.annotate(
-#                     no_of_booking=Count('appointments__sessions')
-#                 )
+            user_sessions = []
+            for entry in sessions_count:
+                assigned_user_id = entry['appointment__assigned_user']
+                session_count = entry['session_count']
+                
+                try:
+                    user = CustomUser.objects.get(id=assigned_user_id)
+                    user_data = {
+                        'user_id': user.id,
+                        'email': user.email,
+                        'username': user.username,
+                        'session_count': session_count,
+                    }
+                    user_sessions.append(user_data)
+                except CustomUser.DoesNotExist:
+                    continue  
 
-#             # Serialize and return data
-#             user_serializer = CustomUserSerializer(users, many=True)
-#             return Response(user_serializer.data, status=status.HTTP_200_OK)
+            return Response(user_sessions, status=status.HTTP_200_OK)
 
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
