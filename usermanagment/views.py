@@ -1108,23 +1108,18 @@ class RescheduleAppointmentSession(APIView):
                     end_time = custom_data.get(f"s{session_number}_endtime")
 
                     if session_date and start_time and end_time:
-                        # Convert string to date and time objects
                         session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
-                        # Check for existing sessions that might conflict
-                        existing_session = Session.objects.filter(
+                        session_no_check= Session.objects.filter(
                             appointment=appointment,
                             session_no=session_number,
-                            session_date=session_date,
-                            start_time__lt=end_time,
-                            end_time__gt=start_time,
                         )
 
-                        if existing_session.exists():
+                        if session_no_check.exists():
                             # If there is an existing session, update it
-                            existing_session.update(
+                            session_no_check.update(
                                 session_date=session_date,
                                 start_time=start_time,
                                 end_time=end_time,
