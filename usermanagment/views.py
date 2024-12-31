@@ -276,9 +276,10 @@ class Getappointments(APIView):
         try:
             assigned_user_id = request.query_params.get('id')
             user=CustomUser.objects.get(id=assigned_user_id) 
-            appointments = user.assigned_appointments.all()
+            appointments = user.assigned_appointments.prefetch_related('sessions').all()
             appointment_serializer = AppointmentSerializer(appointments,many=True)
             response_data =  appointment_serializer.data
+            
 
             return Response(response_data, status=status.HTTP_200_OK)
             
@@ -325,77 +326,152 @@ class Getappointments(APIView):
 
 
 
+# class Getappointmentdata(APIView):
+#     @transaction.atomic
+#     def post(self, request):
+#         try:
+#             print("API Webhook called", request.data)
+            
+#             # Extract the 'customData' from the request data
+#             data = request.data
+#             custom_data = data.get('customData', {})
+#             print("customdata",custom_data)
+            
+#             username = custom_data.get('username', None) 
+#             email = custom_data.get('email', None)  
+#             appointment_location = custom_data.get('appointment_location', None)  
+#             # start_time = custom_data.get('start_time', None)  
+#             # end_time = custom_data.get('end_time', None)  
+#             # start_date = custom_data.get('start_date', None) 
+#             tattoo_idea = custom_data.get('tatto_idea', None)  
+#             reference_images = custom_data.get('reference_Images', None)  
+#             assigned_username = custom_data.get('assigned_user', None)  
+
+#             # print(f"username: {username}")
+#             # print(f"email: {email}")
+#             # print(f"appointment_location: {appointment_location}")
+#             # print(f"start_time: {start_time}")
+#             # print(f"end_time: {end_time}")
+#             # print(f"start_date: {start_date}")
+#             # print(f"tatto_idea: {tattoo_idea}")
+#             # print(f"reference_images: {reference_images}")
+#             # print(f"assigned_user: {assigned_user}")
+#             start_time = datetime.strptime(start_time, '%I:%M %p').time()
+#             end_time = datetime.strptime(end_time, '%I:%M %p').time()
+
+#             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
+            
+#             try:
+#                     assigned_user = CustomUser.objects.get(username=assigned_username)
+#             except ObjectDoesNotExist:
+#                 return Response(
+#                      {"error": f"Assigned user does not exist: {assigned_username}"},
+#                      status=status.HTTP_400_BAD_REQUEST
+#                      )
+            
+#             print("assssss",assigned_user,user)
+#             # overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
+#             # Q(start_time__lt=end_time, end_time__gt=start_time)  
+            
+#             # )
+
+#             # if overlapping_appointments.exists():
+#             #     return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
+
+#             # assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
+            
+#             print('assigned user',assigned_user.__dict__)
+#             # raise Exception 
+#             # appointment = Appointment.objects.create(
+#             #     user=user,
+#             #     appointment_location=appointment_location,
+#             #     # start_date=start_date,
+#             #     # start_time=start_time,
+#             #     # end_time=end_time,
+#             #     assigned_user=assigned_user,
+#             #     tatto_idea=tattoo_idea,
+#             #     reference_image=reference_images
+#             # )
+           
+#             # serializer = AppointmentSerializer(appointment)
+#             # return Response(serializer.data, status=status.HTTP_201_CREATED)
+#             return Response( status=status.HTTP_201_CREATED)
+
+
+#         except KeyError as e:
+#             return Response(
+#                 {"error": f"Missing required field: {str(e)}"},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         except Exception as e:
+#             print(f"Error occurred: {str(e)}")
+#             return Response(
+#                 {"error": str(e)},
+#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+
+
 class Getappointmentdata(APIView):
     @transaction.atomic
     def post(self, request):
         try:
             print("API Webhook called", request.data)
             
-            # Extract the 'customData' from the request data
+            # Extract 'customData' from the request
             data = request.data
             custom_data = data.get('customData', {})
-            print("customdata",custom_data)
-            
-            username = custom_data.get('username', None) 
-            email = custom_data.get('email', None)  
-            appointment_location = custom_data.get('appointment_location', None)  
-            # start_time = custom_data.get('start_time', None)  
-            # end_time = custom_data.get('end_time', None)  
-            # start_date = custom_data.get('start_date', None) 
-            tattoo_idea = custom_data.get('tatto_idea', None)  
-            reference_images = custom_data.get('reference_Images', None)  
-            assigned_username = custom_data.get('assigned_user', None)  
+            print("customdata", custom_data)
 
-            # print(f"username: {username}")
-            # print(f"email: {email}")
-            # print(f"appointment_location: {appointment_location}")
-            # print(f"start_time: {start_time}")
-            # print(f"end_time: {end_time}")
-            # print(f"start_date: {start_date}")
-            # print(f"tatto_idea: {tattoo_idea}")
-            # print(f"reference_images: {reference_images}")
-            # print(f"assigned_user: {assigned_user}")
-            start_time = datetime.strptime(start_time, '%I:%M %p').time()
-            end_time = datetime.strptime(end_time, '%I:%M %p').time()
+            # Parse common data
+            username = custom_data.get('username')
+            email = custom_data.get('email')
+            appointment_location = custom_data.get('appointment_location')
+            tattoo_idea = custom_data.get('tatto_idea')
+            reference_images = custom_data.get('reference_Images')
+            assigned_username = custom_data.get('assigned_user')
 
-            user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
-            
+            # Get or create user
+            user, created = CustomUser.objects.get_or_create(email=email, defaults={'username': username})
+
+            # Validate assigned user
             try:
-                    assigned_user = CustomUser.objects.get(username=assigned_username)
-            except ObjectDoesNotExist:
+                assigned_user = CustomUser.objects.get(username=assigned_username)
+            except CustomUser.DoesNotExist:
                 return Response(
-                     {"error": f"Assigned user does not exist: {assigned_username}"},
-                     status=status.HTTP_400_BAD_REQUEST
-                     )
-            
-            print("assssss",assigned_user,user)
-            # overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
-            # Q(start_time__lt=end_time, end_time__gt=start_time)  
-            
-            # )
+                    {"error": f"Assigned user does not exist: {assigned_username}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-            # if overlapping_appointments.exists():
-            #     return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
+            # Create the appointment
+            appointment = Appointment.objects.create(
+                user=user,
+                appointment_title="Tattoo Appointment",  # Example title
+                appointment_location=appointment_location,
+                tatto_idea=tattoo_idea,
+                reference_image=reference_images,
+                assigned_user=assigned_user
+            )
 
-            # assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
-            
-            print('assigned user',assigned_user.__dict__)
-            # raise Exception 
-            # appointment = Appointment.objects.create(
-            #     user=user,
-            #     appointment_location=appointment_location,
-            #     # start_date=start_date,
-            #     # start_time=start_time,
-            #     # end_time=end_time,
-            #     assigned_user=assigned_user,
-            #     tatto_idea=tattoo_idea,
-            #     reference_image=reference_images
-            # )
-           
-            # serializer = AppointmentSerializer(appointment)
-            # return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response( status=status.HTTP_201_CREATED)
+            # Dynamically parse and create sessions
+            for i in range(1, 7):  # Assuming up to 6 sessions
+                session_date = custom_data.get(f's{i}_date')
+                start_time = custom_data.get(f's{i}_starttime')
+                end_time = custom_data.get(f's{i}_endtime')
 
+                if session_date and start_time and end_time:
+                    session_date = datetime.strptime(session_date, '%Y-%m-%d').date()
+                    start_time = datetime.strptime(start_time, '%I:%M %p').time()
+                    end_time = datetime.strptime(end_time, '%I:%M %p').time()
+
+                    Session.objects.create(
+                        appointment=appointment,
+                        session_date=session_date,
+                        start_time=start_time,
+                        end_time=end_time
+                    )
+
+            return Response({"message": "Appointment and sessions created successfully."}, status=status.HTTP_201_CREATED)
 
         except KeyError as e:
             return Response(
@@ -411,8 +487,6 @@ class Getappointmentdata(APIView):
             )
 
 
-
-
 class Getregistreduser(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -425,6 +499,7 @@ class Getregistreduser(APIView):
             # users = CustomUser.objects.filter(id__in=user_ids)
             user_serializer = CustomUserSerializer(users,many=True)
             response_data =  user_serializer.data
+            
 
             return Response(response_data, status=status.HTTP_200_OK)
             
