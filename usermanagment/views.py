@@ -635,7 +635,7 @@ class Getregistreduser(APIView):
             # Annotate registered users with the number of bookings
             users_with_booking_counts = CustomUser.objects.filter(
                 registreduser=True
-            ).annotate(no_of_booking=Count("assigned_appointments"))
+            ).annotate(session_count=Count("assigned_appointments"))
 
             # Serialize users with the annotated booking count
             user_serializer = CustomUserdetailsSerializer(

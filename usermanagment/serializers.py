@@ -45,7 +45,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     
 
 class CustomUserdetailsSerializer(serializers.ModelSerializer):
-    no_of_booking = serializers.IntegerField(read_only=True)  # Include the annotated field
+    session_count = serializers.IntegerField(read_only=True)  # Include the annotated field
 
     class Meta:
         model = CustomUser
