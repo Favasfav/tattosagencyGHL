@@ -32,6 +32,7 @@ class CustomUser(AbstractUser):
        
 
 class Appointment(models.Model):
+    
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='appointments')
     appointment_title = models.CharField(max_length=60,null=True)
     # start_date = models.DateField()
@@ -50,7 +51,13 @@ class Appointment(models.Model):
     tatto_idea = models.CharField(max_length=255,null=True)  
     reference_image = models.ImageField(null=True, blank=True, upload_to='reference_images/')
 
-    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'assigned_user', 'appointment_location'],
+                name='unique_appointment_user_assigned_location'
+            )
+        ]
 
     def __str__(self):
         return f"Appointment for {self.user.email}"

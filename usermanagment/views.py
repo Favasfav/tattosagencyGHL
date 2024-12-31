@@ -527,7 +527,6 @@ class Getappointmentdata(APIView):
             # Parse common data with validation
             username = custom_data.get("username")
             email = custom_data.get("email")
-            print(email,"email........")
             appointment_location = custom_data.get("appointment_location")
             tattoo_idea = custom_data.get("tatto_idea")
             reference_images = custom_data.get("reference_Images")
@@ -570,14 +569,14 @@ class Getappointmentdata(APIView):
             )
             print(appointment, "Created appointment")
 
-            # Dynamically parse and create sessions
+           
             for i in range(1, 7):  # Assuming up to 6 sessions
                 session_date = custom_data.get(f"s{i}_date", None)
                 start_time = custom_data.get(f"s{i}_starttime", None)
                 end_time = custom_data.get(f"s{i}_endtime", None)
 
                 if not session_date or not start_time or not end_time:
-                    continue  # Skip if session data is incomplete
+                    continue  
 
                 # Convert string to appropriate datetime format
                 session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
@@ -600,7 +599,6 @@ class Getappointmentdata(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                # Create the session
                 session_no = i
                 print(f"Creating session {session_no} for {session_date} from {start_time} to {end_time}")
                 Session.objects.create(
@@ -958,8 +956,10 @@ class GetBookingCountsLastWeekMonth(APIView):
             )
 
 
-# update or reschedule appointment data
-# class RescheduleAppintmentSession(APIView):
+
+
+
+# class RescheduleAppointmentSession(APIView):
 #     @transaction.atomic
 #     def post(self, request):
 #         try:
@@ -973,22 +973,17 @@ class GetBookingCountsLastWeekMonth(APIView):
 #             rescheduled_sessions = []
 
 #             for key in session_keys:
-#                 if key in custom_data and custom_data[key]:  
+#                 if key in custom_data and custom_data[key]:
 #                     rescheduled_sessions.append(key)
 
 #             print("Rescheduled Sessions:", rescheduled_sessions)
 
-            
-#             print("customdata", custom_data)
-
 #             username = custom_data.get("username")
 #             email = custom_data.get("email")
-#             appointment_location = custom_data.get("appointment_location")
 #             assigned_username = custom_data.get("assigned_user")
 
 #             user = CustomUser.objects.get(email=email)
 
-#             # Validate assigned user
 #             try:
 #                 assigned_user = CustomUser.objects.get(username=assigned_username)
 #             except CustomUser.DoesNotExist:
@@ -997,50 +992,59 @@ class GetBookingCountsLastWeekMonth(APIView):
 #                     status=status.HTTP_400_BAD_REQUEST,
 #                 )
 
-#             appointment = Appointment.objects.filter(
-#                 assigned_user=assigned_user, user=user
-#             ).first()
-#             if not appointment:
-#                 return Response(
-#                     {"error": "Appointment not found"},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
+            
 #             if rescheduled_sessions:
-                
-
-#                 for i in rescheduled_sessions: 
-#                     session_date = custom_data.get(f"s{i}_date", None)
-#                     start_time = custom_data.get(f"s{i}_starttime", None)
-#                     end_time = custom_data.get(f"s{i}_endtime", None)
+#                 for session_key in rescheduled_sessions:
+#                     session_number = int(session_key[1])  # Extract number from s1, s2, etc.
+#                     print("session number",session_number)
+#                     # Retrieve session-specific data
+#                     session_date = custom_data.get(f"s{session_number}_date")
+#                     start_time = custom_data.get(f"s{session_number}_starttime")
+#                     end_time = custom_data.get(f"s{session_number}_endtime")
 
 #                     if session_date and start_time and end_time:
 #                         session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
 #                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
 #                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
-#                         excisting_appointment = Session.objects.filter(
-#                             appointment__assigned_user=assigned_user,
-#                             session_date=session_date,
-#                             start_time=end_time,
-#                             end_time__gt=start_time,
-#                         )
 
-#                         if excisting_appointment:
-#                             Session.objects.filter(appointment=appointment).update(
-#                             session_date=session_date,
-#                             start_time=start_time,
-#                             end_time=end_time,
-#                         )
-#                         return Response(
-#                                     {"message": "Appointment and sessions created successfully."},
-#                                     status=status.HTTP_201_CREATED,
-#                                 )
+#                         appointment = Appointment.objects.filter(
+#                           assigned_user=assigned_user, user=user,session__session_no=session_number
+#                                  ).first()
+#                         if not appointment:
+#                             return Response(
+#                               {"error": "Appointment not found"},
+#                               status=status.HTTP_400_BAD_REQUEST,   )
 
                         
+#                         session_no_check= Session.objects.filter(
+#                             appointment=appointment,
+                            
+#                         )
+
+#                         if session_no_check.exists():
+#                             # If there is an existing session, update it
+#                             session_no_check.update(
+#                                 session_date=session_date,
+#                                 start_time=start_time,
+#                                 end_time=end_time,
+#                             )
+
+
+                        
+#                         # else:
+#                         #     # Otherwise, create a new session with the given session number
+#                         #     Session.objects.create(
+#                         #         appointment=appointment,
+#                         #         session_no=session_number,
+#                         #         session_date=session_date,
+#                         #         start_time=start_time,
+#                         #         end_time=end_time,
+#                         #     )
 
 #                 return Response(
-#                     {"message": "Appointment and sessions created successfully."},
-#                     status=status.HTTP_201_CREATED,
+#                     {"message": "Appointment and sessions rescheduled successfully."},
+#                     status=status.HTTP_200_OK,
 #                 )
 
 #         except KeyError as e:
@@ -1048,12 +1052,14 @@ class GetBookingCountsLastWeekMonth(APIView):
 #                 {"error": f"Missing required field: {str(e)}"},
 #                 status=status.HTTP_400_BAD_REQUEST,
 #             )
-
 #         except Exception as e:
 #             print(f"Error occurred: {str(e)}")
 #             return Response(
 #                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
 #             )
+
+
+
 
 
 
@@ -1067,6 +1073,7 @@ class RescheduleAppointmentSession(APIView):
             custom_data = data.get("customData", {})
 
             session_keys = ["s1_starttime", "s2_starttime", "s3_starttime", "s4_starttime", "s5_starttime", "s6_starttime"]
+            appointment_location = custom_data.get("appointment_location")
 
             rescheduled_sessions = []
 
@@ -1076,12 +1083,12 @@ class RescheduleAppointmentSession(APIView):
 
             print("Rescheduled Sessions:", rescheduled_sessions)
 
-            username = custom_data.get("username")
             email = custom_data.get("email")
             assigned_username = custom_data.get("assigned_user")
+            
 
             user = CustomUser.objects.get(email=email)
-
+            print("user",user)
             try:
                 assigned_user = CustomUser.objects.get(username=assigned_username)
             except CustomUser.DoesNotExist:
@@ -1090,20 +1097,13 @@ class RescheduleAppointmentSession(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            appointment = Appointment.objects.filter(
-                assigned_user=assigned_user, user=user
-            ).first()
-            if not appointment:
-                return Response(
-                    {"error": "Appointment not found"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            updated_sessions = []
 
             if rescheduled_sessions:
                 for session_key in rescheduled_sessions:
                     session_number = int(session_key[1])  # Extract number from s1, s2, etc.
-                    print("session number",session_number)
-                    # Retrieve session-specific data
+                    print("Session number:", session_number)
+
                     session_date = custom_data.get(f"s{session_number}_date")
                     start_time = custom_data.get(f"s{session_number}_starttime")
                     end_time = custom_data.get(f"s{session_number}_endtime")
@@ -1113,35 +1113,41 @@ class RescheduleAppointmentSession(APIView):
                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
-                        session_no_check= Session.objects.filter(
+                        appointment = Appointment.objects.filter(
+                            assigned_user=assigned_user, user=user, appointment_location=appointment_location,
+                        ).first()
+
+                        if not appointment:
+                            return Response(
+                                {"error": f"Appointment not found for session number {session_number}"},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
+
+                        session_no_check = Session.objects.filter(
                             appointment=appointment,
-                            session_no=session_number,
+                            session_no=session_number
                         )
 
                         if session_no_check.exists():
-                            # If there is an existing session, update it
                             session_no_check.update(
                                 session_date=session_date,
                                 start_time=start_time,
                                 end_time=end_time,
                             )
+                            updated_sessions.append({
+                                "session_no": session_number,
+                                "session_date": session_date,
+                                "start_time": start_time,
+                                "end_time": end_time,
+                            })
 
-
-                        
-                        # else:
-                        #     # Otherwise, create a new session with the given session number
-                        #     Session.objects.create(
-                        #         appointment=appointment,
-                        #         session_no=session_number,
-                        #         session_date=session_date,
-                        #         start_time=start_time,
-                        #         end_time=end_time,
-                        #     )
-
-                return Response(
-                    {"message": "Appointment and sessions rescheduled successfully."},
-                    status=status.HTTP_200_OK,
-                )
+            return Response(
+                {
+                    "message": "Appointment and sessions rescheduled successfully.",
+                    "updated_sessions": updated_sessions
+                },
+                status=status.HTTP_200_OK,
+            )
 
         except KeyError as e:
             return Response(
