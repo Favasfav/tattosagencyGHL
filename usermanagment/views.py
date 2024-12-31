@@ -455,9 +455,9 @@ class Getappointmentdata(APIView):
 
             # Dynamically parse and create sessions
             for i in range(1, 7):  # Assuming up to 6 sessions
-                session_date = custom_data.get(f's{i}_date')
-                start_time = custom_data.get(f's{i}_starttime')
-                end_time = custom_data.get(f's{i}_endtime')
+                session_date = custom_data.get(f's{i}_date',None)
+                start_time = custom_data.get(f's{i}_starttime',None)
+                end_time = custom_data.get(f's{i}_endtime',None)
 
                 if session_date and start_time and end_time:
                     session_date = datetime.strptime(session_date, '%Y-%m-%d').date()
@@ -499,7 +499,7 @@ class Getregistreduser(APIView):
             # users = CustomUser.objects.filter(id__in=user_ids)
             user_serializer = CustomUserSerializer(users,many=True)
             response_data =  user_serializer.data
-            
+
 
             return Response(response_data, status=status.HTTP_200_OK)
             
