@@ -73,7 +73,7 @@ class Session(models.Model):
         return f"Session on {self.session_date} from {self.start_time} to {self.end_time}"
 from django.db import models
 
-# Create your models here.
+# Create your models here.this is for ghl auth token for updating custom field
 class Authtable(models.Model):
     location_id=models.CharField(unique=True)
     access_token=models.CharField()

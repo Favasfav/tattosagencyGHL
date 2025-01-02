@@ -23,7 +23,7 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, Count
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from django.db import transaction
 from django.utils import timezone
 import requests
@@ -54,20 +54,28 @@ class UserLoginView(APIView):
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+                # if  user.is_superuser:
+                #      return Response(
+                #     {
+                #         "status": status.HTTP_200_OK,
+                #         "message": "This portel is to login for Artists not Admins.",
+                #         "errors": serializer.errors,
+                #     })
 
-                refresh = RefreshToken.for_user(user)
-                refresh["email"] = user.email
+                if not user.is_superuser:
+                    refresh = RefreshToken.for_user(user)
+                    refresh["email"] = user.email
 
-                data = {
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                    # "username":user.username,
-                    # "email":user.email,
-                    # "id":user.id
-                }
-                response_data = data
+                    data = {
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                        # "username":user.username,
+                        # "email":user.email,
+                        # "id":user.id
+                    }
+                    response_data = data
 
-                return Response(response_data, status=status.HTTP_200_OK)
+                    return Response(response_data, status=status.HTTP_200_OK)
 
             else:
                 return Response(
@@ -236,15 +244,20 @@ class UserSignupAPI(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
 from django.contrib.auth import get_user_model
+
 
 class UseradminSignupAPI(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         try:
             if not request.user.is_authenticated or not request.user.is_superuser:
                 return Response(
-                    {"message": "Unauthorized. Only superusers can create admin accounts."},
+                    {
+                        "message": "Unauthorized. Only superusers can create admin accounts."
+                    },
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
@@ -269,12 +282,12 @@ class UseradminSignupAPI(APIView):
             if serializer.is_valid():
                 user_data = serializer.validated_data
                 user = CustomUser(
-                    email=email, 
-                    username=user_data.get("username"), 
+                    email=email,
+                    username=user_data.get("username"),
                 )
-                user.is_superuser = True  
-                user.set_password(password)  
-                user.save()  
+                user.is_superuser = True
+                user.set_password(password)
+                user.save()
 
                 return Response(
                     {"message": "Admin account created successfully."},
@@ -288,7 +301,6 @@ class UseradminSignupAPI(APIView):
                 {"message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
 
 
 class AdminsLoginAPI(APIView):
@@ -331,8 +343,6 @@ class AdminsLoginAPI(APIView):
                 {"message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        
-
 
 
 class AppointmentCreateView(APIView):
@@ -375,7 +385,7 @@ class AppointmentCreateView(APIView):
 
 
 class Getappointments(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
@@ -389,227 +399,6 @@ class Getappointments(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_200_OK)
-
-
-# class Getappointmentdata(APIView):
-#     def post(self,request):
-#         try:
-#             print("apiwebhook")
-#             data=request.data
-#             user, created = CustomUser.objects.get_or_create(email=data.get('email'),username=data.get('username'))
-
-#             assigned_user = None
-
-#             assigned_user = CustomUser.objects.get_or_create(username=data["assigned_user"])
-
-#             # Create Appointment
-#             appointment = Appointment.objects.create(
-#                 user=user,
-#                 appointment_location=data["appointment_location"],
-#                 start_date=data["start_date"],
-#                 start_time=data["start_time"],
-#                 end_time=data.get("end_time"),
-#                 assigned_user=assigned_user,
-#                 tatto_idea=data.get('tatto_idea'),
-#                 # reference_image=data.get('reference_Images')
-#             )
-#             serializer = AppointmentSerializer(appointment)
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-#         except Exception as e:
-#             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-#             print(request.data,"jjjjjjjjjjjjjjjjjjjjjjj")
-#             return Response( status=status.HTTP_200_OK)
-
-
-#         except Exception as e:
-#             return Response(str(e), status=status.HTTP_200_OK)
-
-
-#
-
-
-# class Getappointmentdata(APIView):
-#     @transaction.atomic
-#     def post(self, request):
-#         try:
-#             print("API Webhook called", request.data)
-
-#             # Extract the 'customData' from the request data
-#             data = request.data
-#             custom_data = data.get('customData', {})
-#             print("customdata",custom_data)
-
-#             username = custom_data.get('username', None)
-#             email = custom_data.get('email', None)
-#             appointment_location = custom_data.get('appointment_location', None)
-#             # start_time = custom_data.get('start_time', None)
-#             # end_time = custom_data.get('end_time', None)
-#             # start_date = custom_data.get('start_date', None)
-#             tattoo_idea = custom_data.get('tatto_idea', None)
-#             reference_images = custom_data.get('reference_Images', None)
-#             assigned_username = custom_data.get('assigned_user', None)
-
-#             # print(f"username: {username}")
-#             # print(f"email: {email}")
-#             # print(f"appointment_location: {appointment_location}")
-#             # print(f"start_time: {start_time}")
-#             # print(f"end_time: {end_time}")
-#             # print(f"start_date: {start_date}")
-#             # print(f"tatto_idea: {tattoo_idea}")
-#             # print(f"reference_images: {reference_images}")
-#             # print(f"assigned_user: {assigned_user}")
-#             start_time = datetime.strptime(start_time, '%I:%M %p').time()
-#             end_time = datetime.strptime(end_time, '%I:%M %p').time()
-
-#             user, created = CustomUser.objects.get_or_create(email=email,defaults={'username':username})
-
-#             try:
-#                     assigned_user = CustomUser.objects.get(username=assigned_username)
-#             except ObjectDoesNotExist:
-#                 return Response(
-#                      {"error": f"Assigned user does not exist: {assigned_username}"},
-#                      status=status.HTTP_400_BAD_REQUEST
-#                      )
-
-#             print("assssss",assigned_user,user)
-#             # overlapping_appointments = Appointment.objects.filter(assigned_user=assigned_user,start_date=start_date,).filter(
-#             # Q(start_time__lt=end_time, end_time__gt=start_time)
-
-#             # )
-
-#             # if overlapping_appointments.exists():
-#             #     return Response({"message": "Appointment time overlaps with an existing appointment."}, status=status.HTTP_400_BAD_REQUEST)
-
-#             # assigned_user, created = CustomUser.objects.get_or_create(username=assigned_username,defaults={"email":assigned_username})
-
-#             print('assigned user',assigned_user.__dict__)
-#             # raise Exception
-#             # appointment = Appointment.objects.create(
-#             #     user=user,
-#             #     appointment_location=appointment_location,
-#             #     # start_date=start_date,
-#             #     # start_time=start_time,
-#             #     # end_time=end_time,
-#             #     assigned_user=assigned_user,
-#             #     tatto_idea=tattoo_idea,
-#             #     reference_image=reference_images
-#             # )
-
-#             # serializer = AppointmentSerializer(appointment)
-#             # return Response(serializer.data, status=status.HTTP_201_CREATED)
-#             return Response( status=status.HTTP_201_CREATED)
-
-
-#         except KeyError as e:
-#             return Response(
-#                 {"error": f"Missing required field: {str(e)}"},
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-
-#         except Exception as e:
-#             print(f"Error occurred: {str(e)}")
-#             return Response(
-#                 {"error": str(e)},
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
-
-
-# class Getappointmentdata(APIView):
-#     @transaction.atomic
-#     def post(self, request):
-#         try:
-#             print("API Webhook called", request.data)
-
-#             # Extract 'customData' from the request
-#             data = request.data
-#             custom_data = data.get("customData", {})
-#             print("customdata", custom_data)
-
-#             # Parse common data
-#             username = custom_data.get("username")
-#             email = custom_data.get("email")
-#             appointment_location = custom_data.get("appointment_location")
-#             tattoo_idea = custom_data.get("tatto_idea")
-#             reference_images = custom_data.get("reference_Images")
-#             assigned_username = custom_data.get("assigned_user")
-#             if not email:
-#                 return Response(
-#                     {"error": "Email is required."},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-#             # Get or create user
-#             user, created = CustomUser.objects.get_or_create(
-#                 email=email, defaults={"username": username}  )
-
-#             # Validate assigned user
-#             try:
-#                 assigned_user = CustomUser.objects.get(username=assigned_username)
-#             except CustomUser.DoesNotExist:
-#                 return Response(
-#                     {"error": f"Assigned user does not exist: {assigned_username}"},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-#             appointment = Appointment.objects.create(
-#                 user=user,
-#                 appointment_title=f"Tattoo Appointment:{username}",
-#                 appointment_location=appointment_location,
-#                 tatto_idea=tattoo_idea,
-#                 reference_image=reference_images,
-#                 assigned_user=assigned_user,
-#             )
-#             print(appointment,"jjjjjjjjjjjj")
-#             # Dynamically parse and create sessions
-#             for i in range(1, 7):  # Assuming up to 6 sessions
-#                 session_date = custom_data.get(f"s{i}_date", None)
-#                 start_time = custom_data.get(f"s{i}_starttime", None)
-#                 end_time = custom_data.get(f"s{i}_endtime", None)
-
-#                 if session_date and start_time and end_time:
-#                     session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
-#                     start_time = datetime.strptime(start_time, "%I:%M %p").time()
-#                     end_time = datetime.strptime(end_time, "%I:%M %p").time()
-
-#                     conflict_exists = Session.objects.filter(
-#                         appointment__assigned_user=assigned_user,
-#                         session_date=session_date,
-#                         start_time__lt=end_time,
-#                         end_time__gt=start_time,
-#                     ).exists()
-
-#                     if conflict_exists:
-#                         return Response(
-#                             {
-#                                 "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
-#                             },
-#                             status=status.HTTP_400_BAD_REQUEST,
-#                         )
-#                     session_no=i+1
-#                     print("session id",session_no)
-#                     Session.objects.create(
-#                         appointment=appointment,
-#                         session_date=session_date,
-#                         start_time=start_time,
-#                         end_time=end_time,
-#                         session_no=session_no
-#                     )
-
-#             return Response(
-#                 {"message": "Appointment and sessions created successfully."},
-#                 status=status.HTTP_201_CREATED,
-#             )
-
-#         except KeyError as e:
-#             return Response(
-#                 {"error": f"Missing required field: {str(e)}"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         except Exception as e:
-#             print(f"Error occurred: {str(e)}")
-#             return Response(
-#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
 
 
 class Getappointmentdata(APIView):
@@ -733,17 +522,14 @@ class Getregistreduser(APIView):
 
     def get(self, request):
         try:
-            # Annotate registered users with the number of bookings
             users_with_booking_counts = CustomUser.objects.filter(
                 registreduser=True
             ).annotate(session_count=Count("assigned_appointments"))
 
-            # Serialize users with the annotated booking count
             user_serializer = CustomUserdetailsSerializer(
                 users_with_booking_counts, many=True
             )
 
-            # Return the serialized response
             return Response(user_serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -753,7 +539,7 @@ class Getregistreduser(APIView):
 
 
 class Removefromuserlist(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
@@ -1059,105 +845,6 @@ class GetBookingCountsLastWeekMonth(APIView):
             )
 
 
-# class RescheduleAppointmentSession(APIView):
-#     @transaction.atomic
-#     def post(self, request):
-#         try:
-#             print("API Webhook called", request.data)
-
-#             data = request.data
-#             custom_data = data.get("customData", {})
-
-#             session_keys = ["s1_starttime", "s2_starttime", "s3_starttime", "s4_starttime", "s5_starttime", "s6_starttime"]
-
-#             rescheduled_sessions = []
-
-#             for key in session_keys:
-#                 if key in custom_data and custom_data[key]:
-#                     rescheduled_sessions.append(key)
-
-#             print("Rescheduled Sessions:", rescheduled_sessions)
-
-#             username = custom_data.get("username")
-#             email = custom_data.get("email")
-#             assigned_username = custom_data.get("assigned_user")
-
-#             user = CustomUser.objects.get(email=email)
-
-#             try:
-#                 assigned_user = CustomUser.objects.get(username=assigned_username)
-#             except CustomUser.DoesNotExist:
-#                 return Response(
-#                     {"error": f"Assigned user does not exist: {assigned_username}"},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-
-
-#             if rescheduled_sessions:
-#                 for session_key in rescheduled_sessions:
-#                     session_number = int(session_key[1])  # Extract number from s1, s2, etc.
-#                     print("session number",session_number)
-#                     # Retrieve session-specific data
-#                     session_date = custom_data.get(f"s{session_number}_date")
-#                     start_time = custom_data.get(f"s{session_number}_starttime")
-#                     end_time = custom_data.get(f"s{session_number}_endtime")
-
-#                     if session_date and start_time and end_time:
-#                         session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
-#                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
-#                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
-
-
-#                         appointment = Appointment.objects.filter(
-#                           assigned_user=assigned_user, user=user,session__session_no=session_number
-#                                  ).first()
-#                         if not appointment:
-#                             return Response(
-#                               {"error": "Appointment not found"},
-#                               status=status.HTTP_400_BAD_REQUEST,   )
-
-
-#                         session_no_check= Session.objects.filter(
-#                             appointment=appointment,
-
-#                         )
-
-#                         if session_no_check.exists():
-#                             # If there is an existing session, update it
-#                             session_no_check.update(
-#                                 session_date=session_date,
-#                                 start_time=start_time,
-#                                 end_time=end_time,
-#                             )
-
-
-#                         # else:
-#                         #     # Otherwise, create a new session with the given session number
-#                         #     Session.objects.create(
-#                         #         appointment=appointment,
-#                         #         session_no=session_number,
-#                         #         session_date=session_date,
-#                         #         start_time=start_time,
-#                         #         end_time=end_time,
-#                         #     )
-
-#                 return Response(
-#                     {"message": "Appointment and sessions rescheduled successfully."},
-#                     status=status.HTTP_200_OK,
-#                 )
-
-#         except KeyError as e:
-#             return Response(
-#                 {"error": f"Missing required field: {str(e)}"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-#         except Exception as e:
-#             print(f"Error occurred: {str(e)}")
-#             return Response(
-#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
-
-
 class RescheduleAppointmentSession(APIView):
     @transaction.atomic
     def post(self, request):
@@ -1202,9 +889,7 @@ class RescheduleAppointmentSession(APIView):
 
             if rescheduled_sessions:
                 for session_key in rescheduled_sessions:
-                    session_number = int(
-                        session_key[1]
-                    )  # Extract number from s1, s2, etc.
+                    session_number = int(session_key[1])
                     print("Session number:", session_number)
 
                     session_date = custom_data.get(f"s{session_number}_date")
@@ -1281,6 +966,76 @@ class RescheduleAppointmentSession(APIView):
             )
         except Exception as e:
             print(f"Error occurred: {str(e)}")
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class UserLOgOut(APIView):
+    def post(request, self):
+        try:
+            user = request.user
+            user.auth_token.delete()
+            return Response(
+                {"message": "User logged out successfully"}, status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class AvailableSlotsAPI(APIView):
+    def get(self, request):
+        assigned_user_id = request.query_params.get("assigned_user_id")
+        session_date = request.query_params.get("session_date")
+
+        if not assigned_user_id or not session_date:
+            return Response(
+                {"error": "assigned_user_id and session_date are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
+
+            working_start = time(11, 0, 0)
+            working_end = time(22, 0, 0)
+
+            sessions = Session.objects.filter(
+                appointment__assigned_user_id=assigned_user_id,
+                session_date=session_date,
+            ).order_by("start_time")
+            print(sessions, "dddddddd")
+            available_slots = []
+            last_end_time = working_start
+
+            for session in sessions:
+                if session.start_time > last_end_time:
+                    available_slots.append(
+                        {
+                            "start_time": str(last_end_time),
+                            "end_time": str(session.start_time),
+                        }
+                    )
+                last_end_time = max(last_end_time, session.end_time or last_end_time)
+
+            if last_end_time < working_end:
+                available_slots.append(
+                    {"start_time": str(last_end_time), "end_time": str(working_end)}
+                )
+
+            return Response(
+                {"available_slots": available_slots}, status=status.HTTP_200_OK
+            )
+
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

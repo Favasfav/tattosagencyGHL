@@ -25,6 +25,8 @@ urlpatterns = [
     path('get-customfield/', CustomfieldUpdation.as_view(), name='getcustomfield'),
     path('get-appointmentcount-filter/', GetBookingCountsLastWeekMonth.as_view(), name='getappointmentfilter'),
     path('reschedule-appointsmet-session/', RescheduleAppointmentSession.as_view(), name='getappointmentfilter'),
+    path('get-available-slot/', AvailableSlotsAPI.as_view(), name='get-available-slot'),
+
 
 
 
