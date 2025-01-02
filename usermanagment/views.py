@@ -22,7 +22,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q, Count
+from django.db.models import Q, Count,Max
 from datetime import datetime, timedelta, time
 from django.db import transaction
 from django.utils import timezone
@@ -62,20 +62,18 @@ class UserLoginView(APIView):
                 #         "errors": serializer.errors,
                 #     })
 
-                if not user.is_superuser:
-                    refresh = RefreshToken.for_user(user)
-                    refresh["email"] = user.email
+                refresh = RefreshToken.for_user(user)
+                refresh["email"] = user.email
+                data = {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    # "username":user.username,
+                    # "email":user.email,
+                    # "id":user.id
+                }
+                response_data = data
 
-                    data = {
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token),
-                        # "username":user.username,
-                        # "email":user.email,
-                        # "id":user.id
-                    }
-                    response_data = data
-
-                    return Response(response_data, status=status.HTTP_200_OK)
+                return Response(response_data, status=status.HTTP_200_OK)
 
             else:
                 return Response(
@@ -407,12 +405,10 @@ class Getappointmentdata(APIView):
         try:
             print("API Webhook called", request.data)
 
-            # Extract 'customData' from the request
             data = request.data
             custom_data = data.get("customData", {})
             print("customdata", custom_data)
 
-            # Parse common data with validation
             username = custom_data.get("username")
             email = custom_data.get("email")
             appointment_location = custom_data.get("appointment_location")
@@ -432,12 +428,10 @@ class Getappointmentdata(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Get or create user
             user, created = CustomUser.objects.get_or_create(
                 email=email, defaults={"username": username}
             )
 
-            # Validate assigned user
             try:
                 assigned_user = CustomUser.objects.get(username=assigned_username)
             except CustomUser.DoesNotExist:
@@ -446,8 +440,7 @@ class Getappointmentdata(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Create the appointment
-            appointment = Appointment.objects.create(
+            appointment,created = Appointment.objects.get_or_create(
                 user=user,
                 appointment_title=f"Tattoo Appointment: {username}",
                 appointment_location=appointment_location,
@@ -456,8 +449,58 @@ class Getappointmentdata(APIView):
                 assigned_user=assigned_user,
             )
             print(appointment, "Created appointment")
+            # if not created:
+            #     max_session = appointment.sessions.aggregate(Max('session_no'))['session_no__max']
 
-            for i in range(1, 7):  # Assuming up to 6 sessions
+            #     print("Max session number:", max_session)
+
+            #     for i in range(max_session+1, 7):  
+            #             session_date = custom_data.get(f"s{i}_date", None)
+            #             start_time = custom_data.get(f"s{i}_starttime", None)
+            #             end_time = custom_data.get(f"s{i}_endtime", None)
+
+            #             if not session_date or not start_time or not end_time:
+            #                 continue
+
+            #             session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
+            #             start_time = datetime.strptime(start_time, "%I:%M %p").time()
+            #             end_time = datetime.strptime(end_time, "%I:%M %p").time()
+
+            #             conflict_exists = Session.objects.filter(
+            #                 appointment__assigned_user=assigned_user,
+            #                 session_date=session_date,
+            #                 start_time__lt=end_time,
+            #                 end_time__gt=start_time,
+            #             ).exists()
+
+            #             if conflict_exists:
+            #                 return Response(
+            #                     {
+            #                         "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
+            #                     },
+            #                     status=status.HTTP_400_BAD_REQUEST,
+            #                 )
+
+            #             session_no = i
+            #             print(
+            #                 f"Creating session {session_no} for {session_date} from {start_time} to {end_time}"
+            #             )
+            #             Session.objects.create(
+            #                 appointment=appointment,
+            #                 session_date=session_date,
+            #                 start_time=start_time,
+            #                 end_time=end_time,
+            #                 session_no=session_no,
+            #             )
+
+            #     return Response(
+            #             {"message": "Appointment and sessions created successfully."},
+            #             status=status.HTTP_201_CREATED,
+            #         )
+
+
+
+            for i in range(1, 7):  
                 session_date = custom_data.get(f"s{i}_date", None)
                 start_time = custom_data.get(f"s{i}_starttime", None)
                 end_time = custom_data.get(f"s{i}_endtime", None)
@@ -465,12 +508,10 @@ class Getappointmentdata(APIView):
                 if not session_date or not start_time or not end_time:
                     continue
 
-                # Convert string to appropriate datetime format
                 session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
                 start_time = datetime.strptime(start_time, "%I:%M %p").time()
                 end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
-                # Check for session conflicts
                 conflict_exists = Session.objects.filter(
                     appointment__assigned_user=assigned_user,
                     session_date=session_date,
@@ -789,15 +830,12 @@ class GetBookingCountsLastWeekMonth(APIView):
             end_date_str = request.query_params.get("end_date")
 
             if week_query == "last":
-                # Last 7 days
                 end_date = today
                 start_date = today - timedelta(days=7)
             elif month_query == "last":
-                # Previous calendar month
                 end_date = date.today()
                 start_date = end_date - timedelta(days=30)
             elif start_date_str and end_date_str:
-                # Custom date range
                 try:
                     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
                     end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -971,13 +1009,41 @@ class RescheduleAppointmentSession(APIView):
             )
 
 
+# class UserLOgOut(APIView):
+#     def post(self,request):
+#         try:
+#             print(request.data)
+#             user=CustomUser.objects.get(email=request.data.get('email'))
+#             # user = request.user
+#             user.auth_token.delete()
+#             return Response(
+#                 {"message": "User logged out successfully"}, status=status.HTTP_200_OK
+#             )
+#         except Exception as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+
 class UserLOgOut(APIView):
-    def post(request, self):
+    authentication_classes = [JWTAuthentication]
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         try:
-            user = request.user
-            user.auth_token.delete()
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()  # Blacklist the token
+                return Response(
+                    {"message": "User logged out successfully"},
+                    status=status.HTTP_200_OK,
+                )
             return Response(
-                {"message": "User logged out successfully"}, status=status.HTTP_200_OK
+                {"error": "No refresh token provided"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             return Response(

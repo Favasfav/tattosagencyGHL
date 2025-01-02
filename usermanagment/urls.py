@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin-signup/',UseradminSignupAPI.as_view()),
     path('admin-login/', AdminsLoginAPI.as_view(), name='admin-login'),
     path('login/', UserLoginView.as_view(), name='login'),
+    path('logout/', UserLOgOut.as_view(), name='logout'),
     path('create-appointment/',AppointmentCreateView.as_view(),name='createappointment'),
     path('get-appointments/',Getappointments.as_view(),name='getappointments'),
     path('get-formdata-appointment/',Getappointmentdata.as_view(),name='getappointmentdata'),
@@ -24,7 +25,7 @@ urlpatterns = [
     path('createtoken-onboarding/', CreateAccessToken.as_view(), name='create_token'),
     path('get-customfield/', CustomfieldUpdation.as_view(), name='getcustomfield'),
     path('get-appointmentcount-filter/', GetBookingCountsLastWeekMonth.as_view(), name='getappointmentfilter'),
-    path('reschedule-appointsmet-session/', RescheduleAppointmentSession.as_view(), name='getappointmentfilter'),
+    path('reschedule-appointment-session/', RescheduleAppointmentSession.as_view(), name='getappointmentfilter'),
     path('get-available-slot/', AvailableSlotsAPI.as_view(), name='get-available-slot'),
 
 

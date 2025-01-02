@@ -13,7 +13,8 @@ class CustomUser(AbstractUser):
     username = models.CharField(max_length=50, unique=False)
     registreduser=models.BooleanField(default=False)
     USERNAME_FIELD = 'email'
-    
+    # auth_token = models.CharField(max_length=255, null=True, blank=True)
+
     REQUIRED_FIELDS = ['username']
     groups = models.ManyToManyField(
         'auth.Group',
@@ -35,9 +36,6 @@ class Appointment(models.Model):
     
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='appointments')
     appointment_title = models.CharField(max_length=60,null=True)
-    # start_date = models.DateField()
-    # start_time = models.TimeField()
-    # end_time = models.TimeField(null=True, blank=True)
     assigned_user = models.ForeignKey(
         CustomUser,
         on_delete=models.SET_NULL,
