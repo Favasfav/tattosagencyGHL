@@ -385,7 +385,7 @@ class AppointmentCreateView(APIView):
 
 
 class Getappointments(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
