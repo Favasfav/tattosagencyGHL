@@ -27,7 +27,7 @@ class CustomUser(AbstractUser):
         blank=True
     )
     
-    def _str_(self): 
+    def __str__(self):
         return  self.email 
        
 

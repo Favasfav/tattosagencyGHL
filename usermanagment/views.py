@@ -219,7 +219,7 @@ class UserSignupAPI(APIView):
                     )
 
                 return Response(
-                    {"message": "Account created successfully.","data":response},
+                    {"message": "Account created successfully.", "data": response},
                     status=status.HTTP_201_CREATED,
                 )
             else:
@@ -235,6 +235,104 @@ class UserSignupAPI(APIView):
                 {"message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+from django.contrib.auth import get_user_model
+
+class UseradminSignupAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        try:
+            if not request.user.is_authenticated or not request.user.is_superuser:
+                return Response(
+                    {"message": "Unauthorized. Only superusers can create admin accounts."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            email = request.data.get("email")
+            password = request.data.get("password")
+            username = request.data.get("username")
+
+            if not all([email, password, username]):
+                return Response(
+                    {"message": "Email, password, and username are required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            existing_user = CustomUser.objects.filter(email=email).first()
+            if existing_user:
+                return Response(
+                    {"message": "User with this email already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            serializer = SignupSerializer(data=request.data)
+            if serializer.is_valid():
+                user_data = serializer.validated_data
+                user = CustomUser(
+                    email=email, 
+                    username=user_data.get("username"), 
+                )
+                user.is_superuser = True  
+                user.set_password(password)  
+                user.save()  
+
+                return Response(
+                    {"message": "Admin account created successfully."},
+                    status=status.HTTP_201_CREATED,
+                )
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+
+class AdminsLoginAPI(APIView):
+
+    def post(self, request):
+        try:
+            email = request.data.get("email")
+            password = request.data.get("password")
+
+            if not email or not password:
+                return Response(
+                    {"message": "Email and password are required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user = authenticate(email=email, password=password)
+
+            if not user:
+                return Response(
+                    {"message": "Invalid credentials."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            if not user.is_superuser:
+                return Response(
+                    {"message": "Only admin users can login."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
+            return Response(
+                {"message": "Login successful", "access_token": access_token},
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+
 
 
 class AppointmentCreateView(APIView):
@@ -513,6 +611,7 @@ class Getappointments(APIView):
 #                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
 #             )
 
+
 class Getappointmentdata(APIView):
     @transaction.atomic
     def post(self, request):
@@ -531,7 +630,7 @@ class Getappointmentdata(APIView):
             tattoo_idea = custom_data.get("tatto_idea")
             reference_images = custom_data.get("reference_Images")
             assigned_username = custom_data.get("assigned_user")
-            
+
             if not email:
                 return Response(
                     {"error": "Email is required."},
@@ -569,14 +668,13 @@ class Getappointmentdata(APIView):
             )
             print(appointment, "Created appointment")
 
-           
             for i in range(1, 7):  # Assuming up to 6 sessions
                 session_date = custom_data.get(f"s{i}_date", None)
                 start_time = custom_data.get(f"s{i}_starttime", None)
                 end_time = custom_data.get(f"s{i}_endtime", None)
 
                 if not session_date or not start_time or not end_time:
-                    continue  
+                    continue
 
                 # Convert string to appropriate datetime format
                 session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
@@ -600,13 +698,15 @@ class Getappointmentdata(APIView):
                     )
 
                 session_no = i
-                print(f"Creating session {session_no} for {session_date} from {start_time} to {end_time}")
+                print(
+                    f"Creating session {session_no} for {session_date} from {start_time} to {end_time}"
+                )
                 Session.objects.create(
                     appointment=appointment,
                     session_date=session_date,
                     start_time=start_time,
                     end_time=end_time,
-                    session_no=session_no
+                    session_no=session_no,
                 )
 
             return Response(
@@ -617,9 +717,12 @@ class Getappointmentdata(APIView):
         except Exception as e:
             print(f"Error occurred: {str(e)}")
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": "Already we have appointment based on Artist,location,customer. "
+                    + str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
 
 
 from django.db.models import Count
@@ -956,9 +1059,6 @@ class GetBookingCountsLastWeekMonth(APIView):
             )
 
 
-
-
-
 # class RescheduleAppointmentSession(APIView):
 #     @transaction.atomic
 #     def post(self, request):
@@ -992,7 +1092,7 @@ class GetBookingCountsLastWeekMonth(APIView):
 #                     status=status.HTTP_400_BAD_REQUEST,
 #                 )
 
-            
+
 #             if rescheduled_sessions:
 #                 for session_key in rescheduled_sessions:
 #                     session_number = int(session_key[1])  # Extract number from s1, s2, etc.
@@ -1016,10 +1116,10 @@ class GetBookingCountsLastWeekMonth(APIView):
 #                               {"error": "Appointment not found"},
 #                               status=status.HTTP_400_BAD_REQUEST,   )
 
-                        
+
 #                         session_no_check= Session.objects.filter(
 #                             appointment=appointment,
-                            
+
 #                         )
 
 #                         if session_no_check.exists():
@@ -1031,7 +1131,6 @@ class GetBookingCountsLastWeekMonth(APIView):
 #                             )
 
 
-                        
 #                         # else:
 #                         #     # Otherwise, create a new session with the given session number
 #                         #     Session.objects.create(
@@ -1059,10 +1158,6 @@ class GetBookingCountsLastWeekMonth(APIView):
 #             )
 
 
-
-
-
-
 class RescheduleAppointmentSession(APIView):
     @transaction.atomic
     def post(self, request):
@@ -1072,7 +1167,14 @@ class RescheduleAppointmentSession(APIView):
             data = request.data
             custom_data = data.get("customData", {})
 
-            session_keys = ["s1_starttime", "s2_starttime", "s3_starttime", "s4_starttime", "s5_starttime", "s6_starttime"]
+            session_keys = [
+                "s1_starttime",
+                "s2_starttime",
+                "s3_starttime",
+                "s4_starttime",
+                "s5_starttime",
+                "s6_starttime",
+            ]
             appointment_location = custom_data.get("appointment_location")
 
             rescheduled_sessions = []
@@ -1085,10 +1187,9 @@ class RescheduleAppointmentSession(APIView):
 
             email = custom_data.get("email")
             assigned_username = custom_data.get("assigned_user")
-            
 
             user = CustomUser.objects.get(email=email)
-            print("user",user)
+            print("user", user)
             try:
                 assigned_user = CustomUser.objects.get(username=assigned_username)
             except CustomUser.DoesNotExist:
@@ -1101,7 +1202,9 @@ class RescheduleAppointmentSession(APIView):
 
             if rescheduled_sessions:
                 for session_key in rescheduled_sessions:
-                    session_number = int(session_key[1])  # Extract number from s1, s2, etc.
+                    session_number = int(
+                        session_key[1]
+                    )  # Extract number from s1, s2, etc.
                     print("Session number:", session_number)
 
                     session_date = custom_data.get(f"s{session_number}_date")
@@ -1109,42 +1212,64 @@ class RescheduleAppointmentSession(APIView):
                     end_time = custom_data.get(f"s{session_number}_endtime")
 
                     if session_date and start_time and end_time:
-                        session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
+                        session_date = datetime.strptime(
+                            session_date, "%Y-%m-%d"
+                        ).date()
                         start_time = datetime.strptime(start_time, "%I:%M %p").time()
                         end_time = datetime.strptime(end_time, "%I:%M %p").time()
 
                         appointment = Appointment.objects.filter(
-                            assigned_user=assigned_user, user=user, appointment_location=appointment_location,
+                            assigned_user=assigned_user,
+                            user=user,
+                            appointment_location=appointment_location,
                         ).first()
 
                         if not appointment:
                             return Response(
-                                {"error": f"Appointment not found for session number {session_number}"},
+                                {
+                                    "error": f"Appointment not found for session number {session_number}"
+                                },
                                 status=status.HTTP_400_BAD_REQUEST,
                             )
 
                         session_no_check = Session.objects.filter(
-                            appointment=appointment,
-                            session_no=session_number
+                            appointment=appointment, session_no=session_number
                         )
 
                         if session_no_check.exists():
-                            session_no_check.update(
+                            conflict_exists = Session.objects.filter(
+                                appointment__assigned_user=assigned_user,
                                 session_date=session_date,
-                                start_time=start_time,
-                                end_time=end_time,
+                                start_time__lt=end_time,
+                                end_time__gt=start_time,
+                            ).exists()
+
+                        if conflict_exists:
+                            return Response(
+                                {
+                                    "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
+                                },
+                                status=status.HTTP_400_BAD_REQUEST,
                             )
-                            updated_sessions.append({
+
+                        session_no_check.update(
+                            session_date=session_date,
+                            start_time=start_time,
+                            end_time=end_time,
+                        )
+                        updated_sessions.append(
+                            {
                                 "session_no": session_number,
                                 "session_date": session_date,
                                 "start_time": start_time,
                                 "end_time": end_time,
-                            })
+                            }
+                        )
 
             return Response(
                 {
                     "message": "Appointment and sessions rescheduled successfully.",
-                    "updated_sessions": updated_sessions
+                    "updated_sessions": updated_sessions,
                 },
                 status=status.HTTP_200_OK,
             )
