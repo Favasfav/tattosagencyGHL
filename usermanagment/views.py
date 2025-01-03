@@ -31,6 +31,7 @@ from .models import Appointment
 from django.db.models.functions import TruncDate
 from dateutil.relativedelta import relativedelta
 from datetime import date
+from django.utils.timezone import now
 
 # Create your views here.
 
@@ -380,7 +381,7 @@ class AppointmentCreateView(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-
+from django.db.models import Prefetch
 
 class Getappointments(APIView):
     permission_classes = [IsAuthenticated]
@@ -389,7 +390,17 @@ class Getappointments(APIView):
         try:
             assigned_user_id = request.query_params.get("id")
             user = CustomUser.objects.get(id=assigned_user_id)
-            appointments = user.assigned_appointments.prefetch_related("sessions").all()
+            
+            appointments = (
+                user.assigned_appointments.prefetch_related(
+                    Prefetch(
+                        "sessions",
+                        queryset=Session.objects.filter(session_date__gte=now().date())
+                    )
+                )
+                .distinct()
+            )
+
             appointment_serializer = AppointmentSerializer(appointments, many=True)
             response_data = appointment_serializer.data
 
@@ -397,6 +408,12 @@ class Getappointments(APIView):
 
         except Exception as e:
             return Response(str(e), status=status.HTTP_200_OK)
+
+
+
+
+
+
 
 
 class Getappointmentdata(APIView):
@@ -449,55 +466,9 @@ class Getappointmentdata(APIView):
                 assigned_user=assigned_user,
             )
             print(appointment, "Created appointment")
-            # if not created:
-            #     max_session = appointment.sessions.aggregate(Max('session_no'))['session_no__max']
-
-            #     print("Max session number:", max_session)
-
-            #     for i in range(max_session+1, 7):  
-            #             session_date = custom_data.get(f"s{i}_date", None)
-            #             start_time = custom_data.get(f"s{i}_starttime", None)
-            #             end_time = custom_data.get(f"s{i}_endtime", None)
-
-            #             if not session_date or not start_time or not end_time:
-            #                 continue
-
-            #             session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
-            #             start_time = datetime.strptime(start_time, "%I:%M %p").time()
-            #             end_time = datetime.strptime(end_time, "%I:%M %p").time()
-
-            #             conflict_exists = Session.objects.filter(
-            #                 appointment__assigned_user=assigned_user,
-            #                 session_date=session_date,
-            #                 start_time__lt=end_time,
-            #                 end_time__gt=start_time,
-            #             ).exists()
-
-            #             if conflict_exists:
-            #                 return Response(
-            #                     {
-            #                         "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
-            #                     },
-            #                     status=status.HTTP_400_BAD_REQUEST,
-            #                 )
-
-            #             session_no = i
-            #             print(
-            #                 f"Creating session {session_no} for {session_date} from {start_time} to {end_time}"
-            #             )
-            #             Session.objects.create(
-            #                 appointment=appointment,
-            #                 session_date=session_date,
-            #                 start_time=start_time,
-            #                 end_time=end_time,
-            #                 session_no=session_no,
-            #             )
-
-            #     return Response(
-            #             {"message": "Appointment and sessions created successfully."},
-            #             status=status.HTTP_201_CREATED,
-            #         )
-
+            if not created :
+                pass 
+            #here is the code add for remove session and add to completed one also clear
 
 
             for i in range(1, 7):  
@@ -819,7 +790,6 @@ class CustomfieldUpdation(APIView):
 class GetBookingCountsLastWeekMonth(APIView):
     def get(self, request):
         try:
-            # Determine the date range
             today = date.today()
             start_date = None
             end_date = None
@@ -1053,12 +1023,12 @@ class UserLOgOut(APIView):
 
 class AvailableSlotsAPI(APIView):
     def get(self, request):
-        assigned_user_id = request.query_params.get("assigned_user_id")
+        assigned_username = request.query_params.get("assigned_username")
         session_date = request.query_params.get("session_date")
-
-        if not assigned_user_id or not session_date:
+        print(assigned_username,"kkkkkkkkk")
+        if not assigned_username or not session_date:
             return Response(
-                {"error": "assigned_user_id and session_date are required."},
+                {"error": "assigned_username and session_date are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1067,9 +1037,9 @@ class AvailableSlotsAPI(APIView):
 
             working_start = time(11, 0, 0)
             working_end = time(22, 0, 0)
-
+            assigned_user=CustomUser.objects.get(username=assigned_username)
             sessions = Session.objects.filter(
-                appointment__assigned_user_id=assigned_user_id,
+                appointment__assigned_user_id=assigned_user.id,
                 session_date=session_date,
             ).order_by("start_time")
             print(sessions, "dddddddd")
