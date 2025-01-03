@@ -1132,6 +1132,11 @@ class GetUpcomingAppointments(APIView):
 
             assigned_user = CustomUser.objects.get(username=assigned_username)
             user = CustomUser.objects.get(email=email)
+            if not assigned_user or user:
+                return Response(
+                {"error": f"User does not exist:iiiiii"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
             appointments = Appointment.objects.filter(
                 assigned_user=assigned_user,
