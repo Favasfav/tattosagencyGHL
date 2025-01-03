@@ -410,120 +410,6 @@ class Getappointments(APIView):
             return Response(str(e), status=status.HTTP_200_OK)
 
 
-
-
-
-
-
-
-# class Getappointmentdata(APIView):
-#     @transaction.atomic
-#     def post(self, request):
-#         try:
-#             print("API Webhook called", request.data)
-
-#             data = request.data
-#             custom_data = data.get("customData", {})
-#             print("customdata", custom_data)
-
-#             username = custom_data.get("username")
-#             email = custom_data.get("email")
-#             appointment_location = custom_data.get("appointment_location")
-#             tattoo_idea = custom_data.get("tatto_idea")
-#             reference_images = custom_data.get("reference_Images")
-#             assigned_username = custom_data.get("assigned_user")
-
-#             if not email:
-#                 return Response(
-#                     {"error": "Email is required."},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-
-#             if not username:
-#                 return Response(
-#                     {"error": "Username is required."},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-
-#             user, created = CustomUser.objects.get_or_create(
-#                 email=email, defaults={"username": username}
-#             )
-
-#             try:
-#                 assigned_user = CustomUser.objects.get(username=assigned_username)
-#             except CustomUser.DoesNotExist:
-#                 return Response(
-#                     {"error": f"Assigned user does not exist: {assigned_username}"},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
-
-#             appointment,created = Appointment.objects.get_or_create(
-#                 user=user,
-#                 appointment_title=f"Tattoo Appointment: {username}",
-#                 appointment_location=appointment_location,
-#                 tatto_idea=tattoo_idea,
-#                 reference_image=reference_images,
-#                 assigned_user=assigned_user,
-#             )
-#             print(appointment, "Created appointment")
-#             if not created :
-#                 pass 
-#             #here is the code add for remove session and add to completed one also clear
-
-
-#             for i in range(1, 7):  
-#                 session_date = custom_data.get(f"s{i}_date", None)
-#                 start_time = custom_data.get(f"s{i}_starttime", None)
-#                 end_time = custom_data.get(f"s{i}_endtime", None)
-
-#                 if not session_date or not start_time or not end_time:
-#                     continue
-
-#                 session_date = datetime.strptime(session_date, "%Y-%m-%d").date()
-#                 start_time = datetime.strptime(start_time, "%I:%M %p").time()
-#                 end_time = datetime.strptime(end_time, "%I:%M %p").time()
-
-#                 conflict_exists = Session.objects.filter(
-#                     appointment__assigned_user=assigned_user,
-#                     session_date=session_date,
-#                     start_time__lt=end_time,
-#                     end_time__gt=start_time,
-#                 ).exists()
-
-#                 if conflict_exists:
-#                     return Response(
-#                         {
-#                             "error": f"Slot conflict detected for assigned user {assigned_user.username} on {session_date} from {start_time} to {end_time}."
-#                         },
-#                         status=status.HTTP_400_BAD_REQUEST,
-#                     )
-
-#                 session_no = i
-#                 print(
-#                     f"Creating session {session_no} for {session_date} from {start_time} to {end_time}"
-#                 )
-#                 Session.objects.create(
-#                     appointment=appointment,
-#                     session_date=session_date,
-#                     start_time=start_time,
-#                     end_time=end_time,
-#                     session_no=session_no,
-#                 )
-
-#             return Response(
-#                 {"message": "Appointment and sessions created successfully."},
-#                 status=status.HTTP_201_CREATED,
-#             )
-
-#         except Exception as e:
-#             print(f"Error occurred: {str(e)}")
-#             return Response(
-#                 {
-#                     "error": "Already we have appointment based on Artist,location,customer. "
-#                     + str(e)
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
 class Getappointmentdata(APIView):
     @transaction.atomic
     def post(self, request):
@@ -1166,4 +1052,143 @@ class AvailableSlotsAPI(APIView):
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+
+
+# class GetUpcomingAppointments(APIView):
+#     def get(self, request):
+#         try:
+#             assigned_username = request.query_params.get('assigned_username')
+#             email = request.query_params.get('email')
+#             location = request.query_params.get('location')
+
+#             if not (assigned_username and email):
+#                 return Response(
+#                     {"error": "Both 'assigned_username' and 'email' are required."},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+
+#             assigned_user = CustomUser.objects.get(username=assigned_username)
+#             user = CustomUser.objects.get(email=email)
+
+#             appointments = Appointment.objects.filter(
+#                 assigned_user=assigned_user,
+#                 user=user,
+#                 appointment_location=location,
+#             ).distinct()
+
+#             serialized_appointments = []
+#             for appointment in appointments:
+#                 sessions = appointment.sessions.filter(session_date__gte=datetime.now().date()).order_by('session_date', 'start_time')
+#                 serialized_sessions = [
+#                     {
+#                         "session_date": session.session_date,
+#                         "start_time": session.start_time,
+#                         "end_time": session.end_time,
+#                         "session_no": session.session_no,
+#                     } for session in sessions
+#                 ]
+
+#                 serialized_appointments.append({
+#                     "appointment_id": appointment.id,
+#                     "appointment_title": appointment.appointment_title,
+#                     "appointment_location": appointment.appointment_location,
+#                     "tatto_idea": appointment.tatto_idea,
+#                     "created_at": appointment.created_at,
+#                     "sessions": serialized_sessions
+#                 })
+
+#             return Response(
+#                 {"upcoming_appointments": serialized_appointments},
+#                 status=status.HTTP_200_OK
+#             )
+
+#         except CustomUser.DoesNotExist as e:
+#             return Response(
+#                 {"error": f"User does not exist: {str(e)}"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+#         except Exception as e:
+#             return Response(
+#                 {"error": f"An unexpected error occurred: {str(e)}"},
+#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+
+
+class GetUpcomingAppointments(APIView):
+    def get(self, request):
+        try:
+            assigned_username = request.query_params.get('assigned_username')
+            email = request.query_params.get('email')
+            location = request.query_params.get('location')
+
+            if not (assigned_username and email):
+                return Response(
+                    {"error": "Both 'assigned_username' and 'email' are required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            assigned_user = CustomUser.objects.get(username=assigned_username)
+            user = CustomUser.objects.get(email=email)
+
+            appointments = Appointment.objects.filter(
+                assigned_user=assigned_user,
+                user=user,
+                appointment_location=location,
+            )
+            print('appoi',appointments)
+            # Serialize data
+            serialized_appointments = []
+            now = datetime.now()  # Current datetime
+
+            for appointment in appointments:
+                # Filter sessions for upcoming dates and times
+                sessions = appointment.sessions.filter(
+                    session_date__gte=now.date()
+                ).order_by('session_date', 'start_time')
+
+                # Further filter today's sessions by time
+                if sessions.exists():
+                    sessions = sessions.exclude(
+                        session_date=now.date(),
+                        start_time__lt=now.time()  # Exclude past sessions for today
+                    )
+
+                # Serialize session data
+                serialized_sessions = [
+                    {
+                        "session_date": session.session_date,
+                        "start_time": session.start_time,
+                        "end_time": session.end_time,
+                        "session_no": session.session_no,
+                    } for session in sessions
+                ]
+
+                # Add appointment data
+                if serialized_sessions:  # Include only appointments with valid sessions
+                    serialized_appointments.append({
+                        "appointment_id": appointment.id,
+                        "appointment_title": appointment.appointment_title,
+                        "appointment_location": appointment.appointment_location,
+                        "tatto_idea": appointment.tatto_idea,
+                        "created_at": appointment.created_at,
+                        "sessions": serialized_sessions
+                    })
+
+            return Response(
+                {"upcoming_appointments": serialized_appointments},
+                status=status.HTTP_200_OK
+            )
+
+        except CustomUser.DoesNotExist as e:
+            return Response(
+                {"error": f"User does not exist: {str(e)}"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

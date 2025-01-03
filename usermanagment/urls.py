@@ -27,6 +27,8 @@ urlpatterns = [
     path('get-appointmentcount-filter/', GetBookingCountsLastWeekMonth.as_view(), name='getappointmentfilter'),
     path('reschedule-appointment-session/', RescheduleAppointmentSession.as_view(), name='getappointmentfilter'),
     path('get-available-slot/', AvailableSlotsAPI.as_view(), name='get-available-slot'),
+        path('get-upcomming-appointments/', GetUpcomingAppointments.as_view(), name='get-upcommingappointments'),
+
 
 
 
