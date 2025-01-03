@@ -43,16 +43,16 @@ class Appointment(models.Model):
         blank=True,
         related_name='assigned_appointments'
     )
-    # assigned_user=models.CharField(max_length=50,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     appointment_location = models.CharField(max_length=100,null=True)  
     tatto_idea = models.CharField(max_length=255,null=True)  
     reference_image = models.ImageField(null=True, blank=True, upload_to='reference_images/')
+    appointment_count = models.IntegerField(default=0)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'assigned_user', 'appointment_location'],
+                fields=['user', 'assigned_user', 'appointment_location','appointment_count'],
                 name='unique_appointment_user_assigned_location'
             )
         ]
