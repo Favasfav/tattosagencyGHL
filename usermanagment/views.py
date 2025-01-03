@@ -1139,24 +1139,20 @@ class GetUpcomingAppointments(APIView):
                 appointment_location=location,
             )
             print('appoi',appointments)
-            # Serialize data
             serialized_appointments = []
-            now = datetime.now()  # Current datetime
+            now = datetime.now()  
 
             for appointment in appointments:
-                # Filter sessions for upcoming dates and times
                 sessions = appointment.sessions.filter(
                     session_date__gte=now.date()
                 ).order_by('session_date', 'start_time')
 
-                # Further filter today's sessions by time
                 if sessions.exists():
                     sessions = sessions.exclude(
                         session_date=now.date(),
-                        start_time__lt=now.time()  # Exclude past sessions for today
+                        start_time__lt=now.time()  
                     )
 
-                # Serialize session data
                 serialized_sessions = [
                     {
                         "session_date": session.session_date,
@@ -1166,8 +1162,7 @@ class GetUpcomingAppointments(APIView):
                     } for session in sessions
                 ]
 
-                # Add appointment data
-                if serialized_sessions:  # Include only appointments with valid sessions
+                if serialized_sessions:  
                     serialized_appointments.append({
                         "appointment_id": appointment.id,
                         "appointment_title": appointment.appointment_title,
